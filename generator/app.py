@@ -50,10 +50,7 @@ if __name__ == "__main__":
         sections = cfg.sections()
         if "Login" in sections:
             pre_configured_server = True
-            UID, PWD = cfg["Login"]['uid'], cfg["Login"]["pwd"]   
-
-    win.setWindowTitle("KMIT Fest Pass Generator: Logging in")
-    win.setDisabled(True)
+            UID, PWD = cfg["Login"]['uid'], cfg["Login"]["pwd"]
 
     def saveCFG(save: bool):
         if save:
@@ -69,6 +66,8 @@ if __name__ == "__main__":
     srvrhandler.moveToThread(srvrthread)
     srvrthread.started.connect(lambda: srvrhandler.login(*srvrdlg.getInputs()) \
                                      if pre_configured_server else srvrdlg.exec())
+    srvrthread.started.connect(lambda: win.setWindowTitle("KMIT Fest Pass Generator: Logging in")\
+                               and win.setDisabled(True))
     srvrhandler.error.connect(srvrdlg.error)
     srvrhandler.success.connect(srvrdlg.success)
     srvrdlg.accepted.connect(lambda: srvrhandler.login(*srvrdlg.getInputs()))
@@ -83,7 +82,7 @@ if __name__ == "__main__":
     
     srvrthread.start()
 
-    win.savecfg.connect(saveCFG)
+    if not pre_configured_server: win.savecfg.connect(saveCFG)
     win.show()
 
     exit(app.exec())

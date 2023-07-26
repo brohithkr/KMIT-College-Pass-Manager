@@ -5,6 +5,8 @@ import os
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
 if not os.path.isfile(f"{BASE_DIR}/data/user_data.db"):
+    if not os.path.exists(f"{BASE_DIR}/data"):
+        os.mkdir(f"{BASE_DIR}/data")
     conn = sqlite3.connect(f"{BASE_DIR}/data/user_data.db")
     cur = conn.cursor()
     cur.execute(

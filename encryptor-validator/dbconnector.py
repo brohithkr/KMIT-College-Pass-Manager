@@ -24,6 +24,7 @@ def add_mentor(conn, mentorDict):
 
 
 def add_verifiers(conn, verifierDict):
+    verifierDict["password"] = hashhex(verifierDict["password"])
     cmd = f"insert into verifier {tuple(verifierDict.keys())} values f{verifierDict.values()};"
     cur = conn.cursor()
     cur.execute(cmd)
@@ -32,8 +33,10 @@ def add_verifiers(conn, verifierDict):
 
 def get_data(conn, table_name, uid, keys=["*"]):
     cur = conn.cursor()
+    keystr = str(keys).strip('[]').replace("'","")
+    # print(f"select {keystr} from {table_name} where uid='{uid}'")
     res = cur.execute(
-        f"select {str(keys).strip('[]')} from {table_name} where uid='{uid}'"
+        f"select {keystr} from {table_name} where uid='{uid}'"
     ).fetchone()
 
     return res
@@ -46,3 +49,7 @@ def get_data(conn, table_name, uid, keys=["*"]):
 
 def disconnect(conn):
     conn.close()
+
+if __name__=="__main__":
+    conn = connect("user_data.db")
+    get_data(conn,"mentors","johndoe",["uid","password"])

@@ -20,7 +20,6 @@ class MainWindow(QtWidgets.QMainWindow):
     def __init__(self, parent=None) -> None:
         super().__init__(parent)
         loadUi(f"{DATA_DIR}/design.ui", self)
-        self.mailer = None
         self._SetPASSimg()
         self._connectSignalsSlots()
         self.status = QtWidgets.QLabel()

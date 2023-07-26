@@ -3,7 +3,7 @@ from sys import exit
 from typing import Any
 import requests
 
-SERVERURL = "https://kmitpass.pythonanywhere.com"
+SERVERURL = ""
 
 class ServerThreadHandler(QtCore.QObject):
     crash = QtCore.pyqtSignal(int)
@@ -41,7 +41,7 @@ class ServerDialog(QtWidgets.QDialog):
 
         self.setWindowFlag(QtCore.Qt.WindowContextHelpButtonHint, False)
 
-        if  verify:
+        if not verify:
             self.userid = QtWidgets.QLineEdit(self)
             self.userid.setPlaceholderText("User ID")
         else:

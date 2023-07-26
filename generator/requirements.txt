@@ -3,4 +3,4 @@ pillow
 requests
 
 # # For Single exe 
-pyinstaller ; extras ~= "build"
+# pyinstaller

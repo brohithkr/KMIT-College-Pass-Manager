@@ -36,19 +36,27 @@ class StatusResponse(BaseModel):
 app = FastAPI()
 
 
-@app.post("/api/register/mentors")
-async def add_mentor(key: Annotated[str, Header()], mentor: User) -> StatusResponse:
+@app.post("/api/register/{usertype}")
+async def add_user(usertype,key: Annotated[str, Header()], user: User) -> StatusResponse:
+    validtypes = ["mentors", "verifiers"]
+    if usertype not in validtypes:
+        return StatusResponse(success=False, msg= "Invalid type access")
+    if usertype=="verifiers" and user.section!= None:
+        return StatusResponse(success=False, msg= "Invalid parameters")
     if hashhex(key) != HKEY:
         return StatusResponse(success=False, msg= "Unauthorized Access")
     conn = db.connect("user_data.db")
-    if db.get_data(conn, "mentors", mentor.uid):
-        return StatusResponse(success=False, msg= "Mentor already exists")
-    db.add_mentor(conn, mentor.dict())
-    return StatusResponse(success=True, msg = f"Mentor {mentor.uid} has been registered succesfully")
+    if db.get_data(conn, usertype, user.uid):
+        return StatusResponse(success=False, msg= f"{usertype[:-1]} already exists")
+    if usertype=="mentors":
+        db.add_mentor(conn, user.dict())
+    elif usertype=="verifiers":
+        db.add_verifiers(conn,user.dict())
+    return StatusResponse(success=True, msg = f"{usertype[:-1]} {user.uid} has been registered succesfully")
 
 
 @app.get("/api/login/{usertype}")
-async def is_valid_mentor(usertype: str, user: User) -> StatusResponse:
+async def is_valid_user(usertype: str, user: User) -> StatusResponse:
     validtypes = ["mentors", "verifiers"]
     if usertype not in validtypes:
         return StatusResponse(success=False, msg= "Invalid type access")
@@ -56,12 +64,10 @@ async def is_valid_mentor(usertype: str, user: User) -> StatusResponse:
     userdata = db.get_data(conn, usertype, user.uid, keys=["uid", "password"])
     if not userdata:
         return StatusResponse(success=False, msg= "invalid uid")
-    print(userdata,hashhex(user.password))
+    # print(userdata,hashhex(user.password))
     if userdata[1] != hashhex(user.password):
         return StatusResponse(success=False, msg= "invalid password")
-    return StatusResponse(success=True, msg = f"Valid {usertype}, Login successful")
+    return StatusResponse(success=True, msg = f"Valid {usertype[:-1]}, Login successful")
 
 
-@app.get("/test")
-async def test():
-    return {"k":"word"}
+

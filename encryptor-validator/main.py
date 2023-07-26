@@ -51,7 +51,9 @@ async def add_user(usertype,key: Annotated[str, Header()], user: User) -> Status
     if usertype=="mentors":
         db.add_mentor(conn, user.dict())
     elif usertype=="verifiers":
-        db.add_verifiers(conn,user.dict())
+        verifierDict = user.dict()
+        verifierDict.pop("section",None)
+        db.add_verifiers(conn,verifierDict)
     return StatusResponse(success=True, msg = f"{usertype[:-1]} {user.uid} has been registered succesfully")
 
 
@@ -68,6 +70,9 @@ async def is_valid_user(usertype: str, user: User) -> StatusResponse:
     if userdata[1] != hashhex(user.password):
         return StatusResponse(success=False, msg= "invalid password")
     return StatusResponse(success=True, msg = f"Valid {usertype[:-1]}, Login successful")
+
+
+
 
 
 

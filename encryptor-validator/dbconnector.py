@@ -53,7 +53,7 @@ def add_mentor(conn, mentorDict):
 
 def add_verifiers(conn, verifierDict):
     verifierDict["password"] = hashhex(verifierDict["password"])
-    cmd = f"insert into verifier {tuple(verifierDict.keys())} values f{verifierDict.values()};"
+    cmd = f"insert into verifiers {tuple(verifierDict.keys())} values {tuple(verifierDict.values())};"
     cur = conn.cursor()
     cur.execute(cmd)
     conn.commit()

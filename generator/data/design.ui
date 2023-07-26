@@ -47,11 +47,14 @@
     <widget class="QLineEdit" name="rno">
      <property name="geometry">
       <rect>
-       <x>10</x>
+       <x>0</x>
        <y>10</y>
        <width>151</width>
-       <height>23</height>
+       <height>25</height>
       </rect>
+     </property>
+     <property name="maxLength">
+      <number>10</number>
      </property>
      <property name="placeholderText">
       <string>2_BD_1A____</string>
@@ -60,10 +63,10 @@
     <widget class="QComboBox" name="PassType">
      <property name="geometry">
       <rect>
-       <x>170</x>
+       <x>160</x>
        <y>10</y>
-       <width>161</width>
-       <height>23</height>
+       <width>181</width>
+       <height>25</height>
       </rect>
      </property>
      <property name="currentIndex">
@@ -89,10 +92,10 @@
     <widget class="QPushButton" name="Send">
      <property name="geometry">
       <rect>
-       <x>530</x>
+       <x>540</x>
        <y>10</y>
        <width>80</width>
-       <height>23</height>
+       <height>25</height>
       </rect>
      </property>
      <property name="text">
@@ -102,10 +105,10 @@
     <widget class="QLineEdit" name="Reason">
      <property name="geometry">
       <rect>
-       <x>340</x>
+       <x>350</x>
        <y>10</y>
        <width>181</width>
-       <height>23</height>
+       <height>25</height>
       </rect>
      </property>
      <property name="placeholderText">

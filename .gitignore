@@ -1,0 +1,14 @@
+__pycache__
+.vscode
+.config*
+test*
+tmp*
+valid_passes.json
+StudentData/
+validUsers*
+venv*
+.venv
+dist/
+build/
+*.spec
+*.exe

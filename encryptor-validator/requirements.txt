@@ -2,4 +2,4 @@ fastapi[all]
 pycryptodome
 pyqrcode
 pypng
-opencv
+opencv-python

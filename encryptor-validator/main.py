@@ -4,18 +4,16 @@ from typing import Annotated
 import dbconnector as db
 from crypto import hashhex
 import os
+from configparser import ConfigParser
 
 # config params
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-
-SERVERURL, HKEY = None, None
-with open(f"{BASE_DIR}/.configserver") as f:
-    for line in f.readlines():
-        exec(line)
+configur = ConfigParser()
+configur.read(f"{BASE_DIR}/.config.ini")
+SERVERURL, HKEY = configur.get("server","SERVERURL"), configur.get("server","HKEY")
 
 # Models
-
 
 class User(BaseModel):
     uid: str
@@ -28,6 +26,22 @@ class StatusResponse(BaseModel):
     success: bool | None
     msg: str | None = None
     # reason: str | None = None
+
+class reqPass(BaseModel):
+    rno: str
+    name: str
+    section: str
+    passType: str
+    valid_till: str
+
+class Pass(BaseModel):
+    rno: str
+    name: str
+    section: str
+    b64qr: str
+    passType: str
+
+
 
 
 # functions
@@ -71,8 +85,6 @@ async def is_valid_user(usertype: str, user: User) -> StatusResponse:
         return StatusResponse(success=False, msg= "invalid password")
     return StatusResponse(success=True, msg = f"Valid {usertype[:-1]}, Login successful")
 
-
-
-
-
-
+@app.post("/api/issuepass")
+def issuepass(passType: str, reqpass: reqPass):
+    pass

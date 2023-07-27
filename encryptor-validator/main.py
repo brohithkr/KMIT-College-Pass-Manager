@@ -12,12 +12,14 @@ BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
 SERVERURL, HKEY = None, None
 
-if os.path.isfile(".config.ini"):
+if os.path.isfile(f"{BASE_DIR}/.config.ini"):
     configur = ConfigParser()
     configur.read(f"{BASE_DIR}/.config.ini")
     SERVERURL, HKEY = configur.get("server","SERVERURL"), configur.get("server","HKEY")
 else:
     SERVERURL, HKEY = os.environ.get("SERVERURL"), os.environ.get("HKEY")
+    if None in (SERVERURL, HKEY) :
+        raise Exception("Please provide environment variables or .config.ini")
 
 
 # Models
@@ -39,7 +41,7 @@ class reqPass(BaseModel):
     name: str
     section: str
     passType: str
-    valid_till: str
+    validTill: str
 
 class Pass(BaseModel):
     rno: str
@@ -66,7 +68,7 @@ async def add_user(usertype,key: Annotated[str, Header()], user: User) -> Status
         return StatusResponse(success=False, msg= "Invalid parameters")
     if hashhex(key) != HKEY:
         return StatusResponse(success=False, msg= "Unauthorized Access")
-    conn = db.connect("user_data.db")
+    conn = db.connect()
     if db.get_data(conn, usertype, user.uid):
         return StatusResponse(success=False, msg= f"{usertype[:-1]} already exists")
     if usertype=="mentors":
@@ -83,15 +85,15 @@ async def is_valid_user(usertype: str, user: User) -> StatusResponse:
     validtypes = ["mentors", "verifiers"]
     if usertype not in validtypes:
         return StatusResponse(success=False, msg= "Invalid type access")
-    conn = db.connect("user_data.db")
-    userdata = db.get_data(conn, usertype, user.uid, keys=["uid", "password"])
+    conn = db.connect()
+    userdata = db.get_data(conn, usertype, user.uid)
     if not userdata:
         return StatusResponse(success=False, msg= "invalid uid")
     # print(userdata,hashhex(user.password))
-    if userdata[1] != hashhex(user.password):
+    if userdata["password"] != hashhex(user.password):
         return StatusResponse(success=False, msg= "invalid password")
     return StatusResponse(success=True, msg = f"Valid {usertype[:-1]}, Login successful")
 
 @app.post("/api/issuepass")
-def issuepass(passType: str, reqpass: reqPass):
+def issuepass(passType: str, reqpass: reqPass) -> Pass:
     pass

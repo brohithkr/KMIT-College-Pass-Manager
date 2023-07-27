@@ -9,9 +9,16 @@ from configparser import ConfigParser
 # config params
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-configur = ConfigParser()
-configur.read(f"{BASE_DIR}/.config.ini")
-SERVERURL, HKEY = configur.get("server","SERVERURL"), configur.get("server","HKEY")
+
+SERVERURL, HKEY = None, None
+
+if os.path.isfile(".config.ini"):
+    configur = ConfigParser()
+    configur.read(f"{BASE_DIR}/.config.ini")
+    SERVERURL, HKEY = configur.get("server","SERVERURL"), configur.get("server","HKEY")
+else:
+    SERVERURL, HKEY = os.environ.get("SERVERURL"), os.environ.get("HKEY")
+
 
 # Models
 

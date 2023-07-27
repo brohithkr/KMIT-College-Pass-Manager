@@ -18,6 +18,7 @@ if os.path.isfile(f"{BASE_DIR}/.config.ini"):
     SERVERURL, HKEY = configur.get("server","SERVERURL"), configur.get("server","HKEY")
 else:
     SERVERURL, HKEY = os.environ.get("SERVERURL"), os.environ.get("HKEY")
+    print(SERVERURL, HKEY)
     if None in (SERVERURL, HKEY) :
         raise Exception("Please provide environment variables or .config.ini")
 

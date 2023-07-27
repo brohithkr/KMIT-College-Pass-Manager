@@ -1,6 +1,6 @@
 from fastapi import FastAPI, Request, Header
 from pydantic import BaseModel
-from typing import Annotated
+from typing import Annotated, Union
 import dbconnector as db
 from crypto import hashhex
 import os
@@ -27,14 +27,14 @@ else:
 
 class User(BaseModel):
     uid: str
-    name: str | None = None
+    name: Union[str, None] = None
     password: str
-    section: str | None = None
+    section: Union[str, None] = None
 
 
 class StatusResponse(BaseModel):
-    success: bool | None
-    msg: str | None = None
+    success: Union[bool, None]
+    msg: Union[str, None] = None
     # reason: str | None = None
 
 class reqPass(BaseModel):

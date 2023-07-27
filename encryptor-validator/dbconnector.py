@@ -36,37 +36,6 @@ if not os.path.isfile(f"{BASE_DIR}/data/user_data.db"):
 
 
 def connect(db_name):
-    if not os.path.exists(f"{BASE_DIR}/data"):
-        os.mkdir(f"{BASE_DIR}/data")
-    if not os.path.isfile(f"{BASE_DIR}/data/user_data.db"):
-        conn = sqlite3.connect(f"{BASE_DIR}/data/user_data.db")
-        cur = conn.cursor()
-        cur.execute(
-            """
-            CREATE TABLE mentors (
-            uid             TEXT PRIMARY KEY,
-            name            TEXT NOT NULL,
-            password        TEXT NOT NULL,
-            private_key     TEXT NOT NULL,
-            public_key      TEXT NOT NULL,
-            section         TEXT
-
-        );
-            """
-        )
-        cur.execute(
-            """
-            CREATE TABLE verifiers (
-            uid             TEXT PRIMARY KEY,
-            name            TEXT NOT NULL,
-            password        TEXT NOT NULL
-        );
-            """
-        )
-        conn.commit()
-        conn.close()
-    # if not 
-
     db_path = f"{BASE_DIR}/data/{db_name}"
     conn = sqlite3.connect(db_path)
     return conn

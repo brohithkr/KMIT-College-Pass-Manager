@@ -1,8 +1,10 @@
 from fastapi import FastAPI, Request, Header
 from pydantic import BaseModel
 from typing import Annotated, Union
+import pyqrcode
+from PassUtil import genPass
 import dbconnector as db
-from crypto import hashhex
+from crypto import hashhex, signData, unsignData
 import os
 from configparser import ConfigParser
 
@@ -38,11 +40,10 @@ class StatusResponse(BaseModel):
     # reason: str | None = None
 
 class reqPass(BaseModel):
+    uid: str
+    pwd: str
     rno: str
-    name: str
-    section: str
     passType: str
-    validTill: str
 
 class Pass(BaseModel):
     rno: str
@@ -88,13 +89,53 @@ async def is_valid_user(usertype: str, user: User) -> StatusResponse:
         return StatusResponse(success=False, msg= "Invalid type access")
     conn = db.connect()
     userdata = db.get_data(conn, usertype, user.uid)
+
     if not userdata:
         return StatusResponse(success=False, msg= "invalid uid")
-    # print(userdata,hashhex(user.password))
+
     if userdata["password"] != hashhex(user.password):
         return StatusResponse(success=False, msg= "invalid password")
     return StatusResponse(success=True, msg = f"Valid {usertype[:-1]}, Login successful")
 
 @app.post("/api/issuepass")
-def issuepass(passType: str, reqpass: reqPass) -> Pass:
-    pass
+def issuepass(reqpass: reqPass, fullimage: bool = False) -> Pass:
+    conn = db.connect()
+    mentor_data = db.get_data(conn, "mentors", reqpass.uid)
+    student_data = db.get_data(conn, "students", reqpass.rno)
+
+    if not mentor_data:
+        return StatusResponse(success=False, msg= "invalid uid")
+
+    if mentor_data["password"] != hashhex(reqpass.pwd):
+        return StatusResponse(success=False, msg= "invalid password")
+    
+    if mentor_data["section"] != student_data["section"]:
+        return StatusResponse(success=False, msg= "Unautherized Pass Issue")
+    
+    pass_data = db.get_data(conn, "passes", reqpass.rno)
+
+    if pass_data:
+        if not fullimage:
+            return Pass(rno=reqpass.rno,**pass_data)
+        else:
+            pass_data['rno'] = reqpass.rno
+            pass_data["b64qr"] = genPass(pass_data, reqpass.passType).decode()
+            return Pass(**pass_data)
+
+    signedrno = signData(reqpass.rno,mentor_data["private_key"],reqpass.uid)
+    signed_data = f"{signedrno}@{reqpass.uid}"
+    qr = pyqrcode.create(signed_data)
+    b64qr = qr.png_as_base64_str()
+
+    resPass = Pass(rno=reqpass.rno, name=student_data["name"], section=student_data["section"], b64qr=b64qr, passType=reqpass.passType)
+
+    db.set_data(conn,"passes","rno",resPass.dict())
+
+    if fullimage:
+        resPass.b64qr = genPass(student_data, reqPass.passType).decode()
+
+    return resPass
+
+
+
+

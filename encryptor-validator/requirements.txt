@@ -1,5 +1,6 @@
 fastapi[all]
 pycryptodome
+pillow
 pyqrcode
 pypng
 opencv-python

@@ -50,7 +50,7 @@ def connect():
 def add_mentor(conn, mentorDict):
     mentorDict["password"] = hashhex(mentorDict["password"])
     mentorDict["private_key"], mentorDict["public_key"] = RSAgenerate(
-        mentorDict["password"]
+        mentorDict["uid"]
     )
     uid = mentorDict["uid"]
     del mentorDict["uid"]
@@ -64,6 +64,11 @@ def add_verifiers(conn, verifierDict):
     del verifierDict["uid"]
     conn.hset(f"userdata:verifiers:{uid}",mapping=verifierDict)
 
+def set_data(conn,table_name,primkey,dataDict):
+    rno = dataDict[primkey]
+    del dataDict[primkey]
+    conn.hset(f"userdata:{table_name}:{rno}",mapping=dataDict)
+
 
 def get_data(conn, table_name, uid, key=None):
     res = None
@@ -72,7 +77,7 @@ def get_data(conn, table_name, uid, key=None):
         decoded = decode_dict(res)
         return decoded
     else:
-        res = conn.hget(f"userdata:{table_name}:{uid}", key)
+        res = conn.hget(f"userdata:{table_name}:{uid}", key=key)
         return res
 
 
@@ -81,45 +86,27 @@ def disconnect(conn):
 
 if __name__=="__main__":
     conn = connect()
-    # add_mentor(conn, {
-    #     "uid": "johndoe",
-    #     "name": "John Doe",
-    #     "password": "password123",
-    #     "section": "CSE-A"
-    # })
+    add_mentor(conn, {
+        "uid": "johndoe",
+        "name": "John Doe",
+        "password": "password123",
+        "section": "CSE-A"
+    })
 
-    # d = get_data(conn, "mentors", "johndoe", "password")
-    # print(d)
+    d = get_data(conn, "mentors", "johndoe", )
+    print(d)
 
-    r = redis.Redis(
-        host="rediss://red-cj197btph6enmk10ro6g:6S2fDrVDrNHMUJH4oHaixPNfO8yQAkLV@singapore-redis.render.com:6379",
-        port=6379,
-        # password="6S2fDrVDrNHMUJH4oHaixPNfO8yQAkLV"
-    )
-    # print(r.set("hello","world"))
-    print(r.get("hello"))
+    # r = redis.Redis(
+    #     host="rediss://red-cj197btph6enmk10ro6g:6S2fDrVDrNHMUJH4oHaixPNfO8yQAkLV@singapore-redis.render.com:6379",
+    #     port=6379,
+    #     # password="6S2fDrVDrNHMUJH4oHaixPNfO8yQAkLV"
+    # )
+    # # print(r.set("hello","world"))
+    # print(r.get("hello"))
 
 
 
-# if __name__ == "__main__":
-#     r = redis.Redis(
-#     host='redis-15709.c212.ap-south-1-1.ec2.cloud.redislabs.com',
-#     port=15709,
-#     password='256DnHtekLjXWyZptEh7HsgLRczCQ2xV')
-#     # print(r.hgetall("userdata:students:22BD1A0505"))
-#     # with open("FY.json") as f:
 
-#     #     s = json.loads(f.read())
-#     #     for i in s:
-#     #         d = {
-#     #             "firstname":i["firstname"][:-5],
-#     #             "section": f'{i["dept"]}-{i["section"]}',
-#     #             "picture":i["picture"],
-#     #             "email": i["email"],
-#     #             "phone":i["phone"]
-#     #         }
-#     #         r.hset(f"userdata:students:{i['hallticketno']}",mapping=d)
-#     #         print(d)
         
 
         

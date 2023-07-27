@@ -7,7 +7,7 @@ valid_passes.json
 StudentData/
 validUsers*
 venv*
-.venv
+.*venv
 dist/
 build/
 *.spec

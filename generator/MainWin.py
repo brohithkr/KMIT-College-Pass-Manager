@@ -1,10 +1,10 @@
-from os.path import dirname, abspath, join as joinpath
+from os.path import dirname, abspath, isfile, join as joinpath
 from re import fullmatch
 from base64 import b64decode as b64d
 from PyQt5 import QtCore, QtWidgets, QtGui
 from PyQt5.QtCore import pyqtSlot 
 from PyQt5.uic import loadUi
-# from configparser import ConfigParser
+from configparser import ConfigParser
 import sys, requests
 
 BASE_DIR = None
@@ -14,6 +14,15 @@ elif __file__:
     BASE_DIR = dirname(abspath(__file__))
 
 DATA_DIR = joinpath(dirname(abspath(__file__)), "data")
+
+pre_configured_server: bool = False
+cfg = ConfigParser()
+if isfile(f'{BASE_DIR}/data/.config.ini'):
+    cfg.read(f"{BASE_DIR}/data/.config.ini")
+    sections = cfg.sections()
+    if "Login" in sections:
+        pre_configured_server = True
+        UID, PWD = cfg["Login"]['uid'], cfg["Login"]["pwd"]
 
 class MainWindow(QtWidgets.QMainWindow):
     savecfg = QtCore.pyqtSignal(bool)
@@ -44,10 +53,11 @@ class MainWindow(QtWidgets.QMainWindow):
         self.Pass.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
 
     def closeEvent(self, e):
-        res = QtWidgets.QMessageBox.question(self, "Save Login info?", "Do you want to save Login info for future?",
-                                      QtWidgets.QMessageBox.Yes | QtWidgets.QMessageBox.No)
-        if res == QtWidgets.QMessageBox.Yes: self.savecfg.emit(True)
-        else: self.savecfg.emit(False)
+        if not pre_configured_server:
+            res = QtWidgets.QMessageBox.question(self, "Save Login info?", "Do you want to save Login info for future?",
+                                        QtWidgets.QMessageBox.Yes | QtWidgets.QMessageBox.No)
+            if res == QtWidgets.QMessageBox.Yes: self.savecfg.emit(True)
+            else: self.savecfg.emit(False)
         e.accept()
 
     @pyqtSlot(int)
@@ -107,7 +117,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.Send.setDisabled(True)
         rno, reason = self.rno.text(), self.Reason.text()
 
-        if rno == '' or (reason == '' and self.PassType.currentIndex != 0):
+        if rno == '' or (reason == '' and self.PassType.currentIndex == 0):
             QtWidgets.QMessageBox.information(self, "Empty Data", "Please fill out all the fields")
             self.Send.setDisabled(False)
             return

@@ -16,7 +16,7 @@ class ServerThreadHandler(QtCore.QObject):
         response = None
 
         try:
-            response = requests.post(f"{SERVERURL}/verify_password", json={"uid": UID, "pwd": PWD}).status_code
+            response = requests.get(f"{SERVERURL}/api/login/mentors", json={"uid": UID, "password": PWD}).status_code
         except (requests.ConnectionError, requests.Timeout):
             self.error.emit("Internet Error! Try Again.")
             return

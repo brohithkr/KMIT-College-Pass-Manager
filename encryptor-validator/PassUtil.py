@@ -1,6 +1,7 @@
 from io import BytesIO
 from base64 import b64decode as b64d, b64encode as b64e
 from PIL import Image, ImageDraw, ImageFont
+import os
 from os.path import dirname, abspath, join as joinpath
 from configparser import ConfigParser
 from datetime import date
@@ -13,11 +14,17 @@ if getattr(sys, 'frozen', False):
 elif __file__:
     BASE_DIR = dirname(abspath(__file__))
 
-DATA_DIR = joinpath(dirname(abspath(__file__)), "data")
+SERVERURL, HKEY = None, None
 
-cfg = ConfigParser()
-cfg.read(f"{BASE_DIR}/.config.ini")
-SERVERURL, HKEY = cfg["server"]["SERVERURL"], cfg["server"]["HKEY"]
+if os.path.isfile(f"{BASE_DIR}/.config.ini"):
+    configur = ConfigParser()
+    configur.read(f"{BASE_DIR}/.config.ini")
+    SERVERURL, HKEY = configur.get("server","SERVERURL"), configur.get("server","HKEY")
+else:
+    SERVERURL, HKEY = os.environ.get("SERVERURL"), os.environ.get("HKEY")
+    print(SERVERURL, HKEY)
+    if None in (SERVERURL, HKEY) :
+        raise Exception("Please provide environment variables or .config.ini")
 
 # from https://itnext.io/how-to-wrap-text-on-image-using-python-8f569860f89e + modifications
 def text_wrap(text, font, max_width):

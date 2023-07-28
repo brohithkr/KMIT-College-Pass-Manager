@@ -1,12 +1,14 @@
-from fastapi import FastAPI, Request, Header
+from fastapi import FastAPI, Request, Header, Response
 from pydantic import BaseModel
 from typing import Annotated, Union
 import pyqrcode
 from PassUtil import genPass
 import dbconnector as db
 from crypto import hashhex, signData, unsignData
-import os
 from configparser import ConfigParser
+import os
+from datetime import datetime
+from pytz import timezone
 
 # config params
 
@@ -17,15 +19,18 @@ SERVERURL, HKEY = None, None
 if os.path.isfile(f"{BASE_DIR}/.config.ini"):
     configur = ConfigParser()
     configur.read(f"{BASE_DIR}/.config.ini")
-    SERVERURL, HKEY = configur.get("server","SERVERURL"), configur.get("server","HKEY")
+    SERVERURL, HKEY = configur.get("server", "SERVERURL"), configur.get(
+        "server", "HKEY"
+    )
 else:
     SERVERURL, HKEY = os.environ.get("SERVERURL"), os.environ.get("HKEY")
     print(SERVERURL, HKEY)
-    if None in (SERVERURL, HKEY) :
+    if None in (SERVERURL, HKEY):
         raise Exception("Please provide environment variables or .config.ini")
 
 
 # Models
+
 
 class User(BaseModel):
     uid: str
@@ -34,10 +39,12 @@ class User(BaseModel):
     section: Union[str, None] = None
 
 
+
 class StatusResponse(BaseModel):
     success: Union[bool, None]
     msg: Union[str, None] = None
     # reason: str | None = None
+
 
 class reqPass(BaseModel):
     uid: str
@@ -45,15 +52,19 @@ class reqPass(BaseModel):
     rno: str
     passType: str
 
+
 class Pass(BaseModel):
     rno: str
     name: str
     section: str
     b64qr: str
     passType: str
+    issueDate: str
 
-
-
+class reqVerification(BaseModel):
+    uid: str
+    pwd: str
+    signed_data: str
 
 # functions
 
@@ -62,40 +73,45 @@ app = FastAPI()
 
 
 @app.post("/api/register/{usertype}")
-async def add_user(usertype,key: Annotated[str, Header()], user: User) -> StatusResponse:
+async def add_user(
+    usertype, key: Annotated[str, Header()], user: User
+) -> StatusResponse:
     validtypes = ["mentors", "verifiers"]
     if usertype not in validtypes:
-        return StatusResponse(success=False, msg= "Invalid type access")
-    if usertype=="verifiers" and user.section!= None:
-        return StatusResponse(success=False, msg= "Invalid parameters")
+        return StatusResponse(success=False, msg="Invalid type access")
+    if usertype == "verifiers" and user.section != None:
+        return StatusResponse(success=False, msg="Invalid parameters")
     if hashhex(key) != HKEY:
-        return StatusResponse(success=False, msg= "Unauthorized Access")
+        return StatusResponse(success=False, msg="Unauthorized Access")
     conn = db.connect()
     if db.get_data(conn, usertype, user.uid):
-        return StatusResponse(success=False, msg= f"{usertype[:-1]} already exists")
-    if usertype=="mentors":
+        return StatusResponse(success=False, msg=f"{usertype[:-1]} already exists")
+    if usertype == "mentors":
         db.add_mentor(conn, user.dict())
-    elif usertype=="verifiers":
+    elif usertype == "verifiers":
         verifierDict = user.dict()
-        verifierDict.pop("section",None)
-        db.add_verifiers(conn,verifierDict)
-    return StatusResponse(success=True, msg = f"{usertype[:-1]} {user.uid} has been registered succesfully")
+        verifierDict.pop("section", None)
+        db.add_verifiers(conn, verifierDict)
+    return StatusResponse(
+        success=True, msg=f"{usertype[:-1]} {user.uid} has been registered succesfully"
+    )
 
 
 @app.get("/api/login/{usertype}")
-async def is_valid_user(usertype: str, user: User) -> StatusResponse:
+async def is_valid_user(usertype: str, user: User) -> Union[StatusResponse, Pass]:
     validtypes = ["mentors", "verifiers"]
     if usertype not in validtypes:
-        return StatusResponse(success=False, msg= "Invalid type access")
+        return StatusResponse(success=False, msg="Invalid type access")
     conn = db.connect()
     userdata = db.get_data(conn, usertype, user.uid)
 
     if not userdata:
-        return StatusResponse(success=False, msg= "invalid uid")
+        return StatusResponse(success=False, msg="invalid uid")
 
     if userdata["password"] != hashhex(user.password):
-        return StatusResponse(success=False, msg= "invalid password")
-    return StatusResponse(success=True, msg = f"Valid {usertype[:-1]}, Login successful")
+        return StatusResponse(success=False, msg="invalid password")
+    return StatusResponse(success=True, msg=f"Valid {usertype[:-1]}, Login successful")
+
 
 @app.post("/api/issuepass")
 def issuepass(reqpass: reqPass, fullimage: bool = False) -> Pass:
@@ -104,38 +120,80 @@ def issuepass(reqpass: reqPass, fullimage: bool = False) -> Pass:
     student_data = db.get_data(conn, "students", reqpass.rno)
 
     if not mentor_data:
-        return StatusResponse(success=False, msg= "invalid uid")
+        return StatusResponse(success=False, msg="invalid uid")
 
     if mentor_data["password"] != hashhex(reqpass.pwd):
-        return StatusResponse(success=False, msg= "invalid password")
-    
+        return StatusResponse(success=False, msg="invalid password")
+
     if mentor_data["section"] != student_data["section"]:
-        return StatusResponse(success=False, msg= "Unautherized Pass Issue")
-    
+        return StatusResponse(success=False, msg="Unautherized Pass Issue")
+
     pass_data = db.get_data(conn, "passes", reqpass.rno)
 
     if pass_data:
+        if reqpass.passType != pass_data["passType"]:
+            return StatusResponse(
+                success=False,
+                msg=f"{student_data[reqpass.rno]} already owns a {passtype} pass.",
+            )
         if not fullimage:
-            return Pass(rno=reqpass.rno,**pass_data)
+            return Pass(rno=reqpass.rno, **pass_data)
         else:
-            pass_data['rno'] = reqpass.rno
+            pass_data["rno"] = reqpass.rno
             pass_data["b64qr"] = genPass(pass_data, reqpass.passType).decode()
             return Pass(**pass_data)
 
-    signedrno = signData(reqpass.rno,mentor_data["private_key"],reqpass.uid)
+    signedrno = signData(reqpass.rno, mentor_data["private_key"], reqpass.uid)
     signed_data = f"{signedrno}@{reqpass.uid}"
     qr = pyqrcode.create(signed_data)
     b64qr = qr.png_as_base64_str()
 
-    resPass = Pass(rno=reqpass.rno, name=student_data["name"], section=student_data["section"], b64qr=b64qr, passType=reqpass.passType)
+    resPass = Pass(
+        rno=reqpass.rno,
+        name=student_data["name"],
+        section=student_data["section"],
+        b64qr=b64qr,
+        passType=reqpass.passType,
+        issueDate=datetime.now(timezone("Asia/Kolkata")).strftime("%d-%m-%Y"),
+    )
 
-    db.set_data(conn,"passes","rno",resPass.dict())
+    db.set_data(conn, "passes", "rno", resPass.dict())
 
     if fullimage:
         resPass.b64qr = genPass(student_data, reqPass.passType).decode()
 
     return resPass
 
+@app.post("/api/verify")
+def verifyPass(reqVer: reqVerification) -> Union[StatusResponse]:
+    verifier_data = db.get_data(conn, "verifiers", reqVer.uid)
+    if not verifier_data:
+        return StatusResponse(success=False, msg="Invalid verifier UID")
+    elif verifier_data["password"] != hashhex(reqVer.pwd):
+        return StatusResponse(success=False, msg="Invalid verifier password")
+    sign, uid = signed_data.split("@")
+    conn = db.connect()
+    mentor_key = db.get_data(conn, "mentors", uid)["public_key"]
+    rno = None
+    try:
+        rno = unsignData(sign, mentor_key)
+    except:
+        return StatusResponse(success=False, msg="Invalid Signature")
 
+    pass_data = db.get_data(conn, "passes", rno)
 
+    # if not pass_data:
+    #     return StatusResponse(success=False, msg="Invalid Pass")
+    
+    # student_data = db.get_data(conn, "students", rno)
+    # if not student_data:
+    #     return StatusResponse(success=False, msg="Insuffitient data")
+    # mentor_data = db.get_data(conn, "mentors", uid)
 
+    # if not unsignData(rno, signed_data, mentor_data["public_key"]):
+    #     return StatusResponse(success=False, msg="Invalid Pass")
+    # return StatusResponse(success=True, msg="Pass Verified")
+
+@app.head("/wake_up")
+def wake_up():
+    return Response()

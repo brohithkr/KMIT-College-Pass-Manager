@@ -5,3 +5,4 @@ pyqrcode
 pypng
 # opencv-python
 redis
+requests

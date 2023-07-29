@@ -75,6 +75,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.PassType.currentIndexChanged.connect(self.comboBoxHandler)
         self.Send.setAutoDefault(True)
         self.actionSend.triggered.connect(lambda: self.rno.setText(self.rno.text().upper()))
+        self.Reason.returnPressed.connect(self.actionSend.trigger)
         self.actionSend.triggered.connect(self._preSend)
 
     def _clear(self) -> None:
@@ -131,7 +132,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.passStatus = requests.post(f"{SERVERURL}/passStatus/{rno}", 
                                         json={"type": "monthly" if self.PassType.currentIndex()==1 else "daily"})
 
-        if self.PassType.currentIndex() == 0 and  self.studentData["remaining_passes"] == 0:
+        if self.PassType.currentIndex() == 0 and self.studentData["remaining_passes"] == 0:
             ans = QtWidgets.QMessageBox.question(self, "Alert",
                     f"{self.studentData['Name']} has obtained max allowed number of classes.\nDo you still want to continue?",
                     QtWidgets.QMessageBox.Yes | QtWidgets.QMessageBox.No, QtWidgets.QMessageBox.No)

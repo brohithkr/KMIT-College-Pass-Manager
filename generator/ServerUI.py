@@ -31,7 +31,7 @@ class ServerThreadHandler(QtCore.QObject):
             print("Response:", response)
         
 class ServerDialog(QtWidgets.QDialog):
-    invalid = QtCore.pyqtSignal 
+    invalid = QtCore.pyqtSignal()
     def __init__(self, parent=None, creds=None, handler:ServerThreadHandler = None, verify = False):
         super().__init__(parent=parent)
         self.setWindowTitle("Server Login" if verify else "Verify User")

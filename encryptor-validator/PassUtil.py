@@ -72,7 +72,7 @@ def genPass(pass_data: dict, passType: str) -> bytes:
     img.save(buffer, format='png')
     passB64 = b64e(buffer.getvalue())
     img.show()
-    return passB64
+    return passB64.decode()
 
 def sendMail(rno, passType) -> bool | None:
     return requests.post(f"{SERVERURL}/sendMail", json={"rno": rno, "type": passType}).json()["status"]

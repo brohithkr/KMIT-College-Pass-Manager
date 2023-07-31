@@ -64,14 +64,27 @@ def add_verifiers(conn, verifierDict):
     del verifierDict["uid"]
     conn.hset(f"userdata:verifiers:{uid}",mapping=verifierDict)
 
-def set_data(conn,table_name,primkey,dataDict):
-    rno = dataDict[primkey]
-    del dataDict[primkey]
-    conn.hset(f"userdata:{table_name}:{rno}",mapping=dataDict)
+def set_data(conn,table_name,primkey,data):
+    if type(data) == dict:
+        rno = data[primkey]
+        del data[primkey]
+        conn.hset(f"userdata:{table_name}:{rno}",mapping=data)
+    elif type(data) == list :
+        for d in data:
+            conn.rpush(f"userdata:{table_name}:{primkey}",d)
+       
+def remove_data(conn,table_name,uid):
+    conn.delete(f"userdata:{table_name}:{uid}")
+        
 
 
 def get_data(conn, table_name, uid, key=None):
     res = None
+    if table_name in ["scan_history","expired_passes"]:
+        res = []
+        for i in range(conn.llen(f"userdata:{table_name}:{uid}")):
+            res.append(conn.lindex(f"userdata:{table_name}:{uid}",i))
+        return res
     if key is None:
         res = conn.hgetall(f"userdata:{table_name}:{uid}")
         decoded = decode_dict(res)

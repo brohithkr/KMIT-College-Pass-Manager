@@ -130,7 +130,7 @@ async def is_valid_user(usertype: str, user: User) -> Union[StatusResponse, Pass
 
 
 @app.post("/api/issuepass")
-def issuepass(reqpass: reqPass, resp: Response, fullimage: bool = False) -> Union[Pass, StatusResponse]:
+async def issuepass(reqpass: reqPass, resp: Response, fullimage: bool = False) -> Union[Pass, StatusResponse]:
     conn = db.connect()
     mentor_data = db.get_data(conn, "mentors", reqpass.uid)
     student_data = db.get_data(conn, "students", reqpass.rno)
@@ -164,7 +164,7 @@ def issuepass(reqpass: reqPass, resp: Response, fullimage: bool = False) -> Unio
             pass_data["rno"] = reqpass.rno
             pass_data["b64qr"] = genPass(pass_data, reqpass.passType).decode()
             
-            return Pass(rno=reqpass.rno, **pass_data).dict().update("alreadyOwns",alreadyOwns)
+            return Pass(rno=reqpass.rno, **pass_data)
 
     signedrno = signData(reqpass.rno, mentor_data["private_key"], reqpass.uid)
     signed_data = f"{signedrno}@{reqpass.uid}"
@@ -261,6 +261,8 @@ def get_scan_history(req: reqVer):
     # if not unsignData(rno, signed_data, mentor_data["public_key"]):
     #     return StatusResponse(success=False, msg="Invalid Pass")
     # return StatusResponse(success=True, msg="Pass Verified")
+
+
 
 
 

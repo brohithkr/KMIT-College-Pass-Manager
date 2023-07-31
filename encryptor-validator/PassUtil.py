@@ -50,7 +50,7 @@ def genPass(pass_data: dict, passType: str) -> bytes:
     studentimg = Image.open(BytesIO(studentimg)).resize((188, 252))
     template = Image.open(f"{BASE_DIR}/data/{passType}.png")
 
-    textfont = ImageFont.truetype(f"{DATA_DIR}/Lora.ttf", 24)
+    textfont = ImageFont.truetype(f"{BASE_DIR}/data/Lora.ttf", 24)
     today = date.today()
     today = today.strftime(r"%d/%m/%Y")
     details = text_wrap(pass_data["name"], textfont, 300)
@@ -60,7 +60,7 @@ def genPass(pass_data: dict, passType: str) -> bytes:
     img.paste(qr, (76, 154))
     img.paste(studentimg, (496, 154))
 
-    datefont = ImageFont.truetype(f"{DATA_DIR}/Verdana.ttf", 40)
+    datefont = ImageFont.truetype(f"{BASE_DIR}/data/Verdana.ttf", 40)
     painter = ImageDraw.Draw(img)
     painter.text((110, 470), today, fill=(0,0,0), font=datefont)
     y, height = 415, textfont.getbbox("hg")[3]+5

@@ -52,6 +52,12 @@ if __name__ == "__main__":
             pre_configured_server = True
             UID, PWD = cfg["Login"]['uid'], cfg["Login"]["pwd"]
 
+    def saveCFG():
+        cfg = ConfigParser()
+        UID, PWD = srvrdlg.getInputs()
+        cfg["Login"] = {"uid": UID, "pwd": PWD}
+        with open(f"{BASE_DIR}/data/.config.ini", 'w') as cfgfile:
+            cfg.write(cfgfile)
 
     srvrhandler = ServerThreadHandler()
     srvrdlg = ServerDialog(win, cfg["Login"] if pre_configured_server else None, srvrhandler)
@@ -71,19 +77,13 @@ if __name__ == "__main__":
     srvrthread.finished.connect(srvrthread.deleteLater)
     srvrhandler.success.connect(lambda: win.status.setText("Waiting for Data..."))
     srvrhandler.success.connect(lambda: win.setWindowTitle("KMIT Fest Pass Generator"))
-    srvrhandler.success.connect(lambda: win.setDisabled(False)) 
+    srvrhandler.success.connect(lambda: win.setDisabled(False))
+    srvrhandler.success.connect(saveCFG) 
     
     srvrthread.start()
 
-    def saveCFG(save: bool):
-        if save:
-            cfg = ConfigParser()
-            UID, PWD = srvrdlg.getInputs()
-            cfg["Login"] = {"uid": UID, "pwd": PWD}
-            with open(f"{BASE_DIR}/data/.config.ini", 'w') as cfgfile:
-                cfg.write(cfgfile)
 
-    if not pre_configured_server: win.savecfg.connect(saveCFG)
+    # if not pre_configured_server: 
     win.show()
 
     exit(app.exec())

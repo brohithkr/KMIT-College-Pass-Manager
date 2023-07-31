@@ -128,43 +128,25 @@ class MainWindow(QtWidgets.QMainWindow):
             self.Send.setDisabled(False)
             return
         
-        self.studentData = requests.get(f"{SERVERURL}/getStudentData", {"rno": rno, "uid": self.UID, "pwd": self.PWD}).json()
-        self.passStatus = requests.post(f"{SERVERURL}/passStatus/{rno}", 
-                                        json={"type": "monthly" if self.PassType.currentIndex()==1 else "daily"})
-
-        if self.PassType.currentIndex() == 0 and self.studentData["remaining_passes"] == 0:
-            ans = QtWidgets.QMessageBox.question(self, "Alert",
-                    f"{self.studentData['Name']} has obtained max allowed number of classes.\nDo you still want to continue?",
-                    QtWidgets.QMessageBox.Yes | QtWidgets.QMessageBox.No, QtWidgets.QMessageBox.No)
-            if ans == QtWidgets.QMessageBox.Yes:
-                self._getAuth()
-        elif self.PassType.currentIndex() == 1 and (self.passStatus == "expiring" or self.passStatus == "invalid"): self._getAuth()
-        else: self._sendPass()
+        self._sendPass()
 
     def _sendPass(self):        
         from ServerUI import SERVERURL
         from PassQRFetcher import PassFetcher
 
-        send = True
         self.status.setText("Working...")
-        if self.passStatus == "valid":
-            ans = QtWidgets.QMessageBox.question(self, "Resend Pass?", 
-                    f"Pass already given to {self.rno.text()}.\nDo you want to resend pass?",
-                    QtWidgets.QMessageBox.Yes | QtWidgets.QMessageBox.No, QtWidgets.QMessageBox.No)
-            if ans == QtWidgets.QMessageBox.No: send = False
-
-        if send:
-            thread = QtCore.QThread()
-            sender = PassFetcher(self.rno.text(), self.PassType.currentIndex())
-            sender.moveToThread(thread)
-            thread.started.connect(sender.run)
-            sender.status.connect(self._setStatus)
-            sender.Pass.connect(lambda img: self._SetPASSimg(img, True))
-            sender.finished.connect(thread.quit)
-            sender.finished.connect(self._clear)
-            thread.finished.connect(thread.deleteLater)
-            thread.finished.connect(sender.deleteLater)
-            thread.start()
+        
+        thread = QtCore.QThread()
+        sender = PassFetcher(self.rno.text(), self.PassType.currentIndex())
+        sender.moveToThread(thread)
+        thread.started.connect(sender.fetchPass)
+        sender.status.connect(self._setStatus)
+        sender.Pass.connect(lambda img: self._SetPASSimg(img, True))
+        sender.finished.connect(thread.quit)
+        sender.finished.connect(self._clear)
+        # thread.finished.connect(thread.deleteLater)
+        # thread.finished.connect(sender.deleteLater)
+        thread.start()
 
     @pyqtSlot(str)
     def _setStatus(self, status):

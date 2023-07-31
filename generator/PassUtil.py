@@ -25,7 +25,7 @@ def fetchQR(rno, passtype) -> str:
             "uid": UID,
             "pwd": PWD,
             "rno": rno,
-            "type": passtype
+            "passType": passtype
         })
     return passqr_data
 
@@ -47,17 +47,17 @@ def text_wrap(text, font, max_width):
                 lines.append(line)
         return lines
 
-def genPass(pass_data: dict, passType: str) -> bytes:
+def genPass(pass_data: dict) -> bytes:
     qr = Image.open(BytesIO(b64d(pass_data["b64qr"]))).resize((312, 312))
     studentimg = requests.get(f"http://teleuniv.in/sanjaya/student-images/{pass_data['rno']}.jpg").content
     studentimg = Image.open(BytesIO(studentimg)).resize((188, 252))
-    template = Image.open(f"{BASE_DIR}/data/{passType}.png")
+    template = Image.open(f"{BASE_DIR}/data/{pass_data['passType']}.png")
 
     textfont = ImageFont.truetype(f"{DATA_DIR}/Lora.ttf", 24)
     today = date.today()
     today = today.strftime(r"%d/%m/%Y")
     details = text_wrap(pass_data["name"], textfont, 300)
-    details.extend(text_wrap(f"{pass_data['rno']} {pass_data['class']}", textfont, 300))
+    details.extend(text_wrap(f"{pass_data['rno']} {pass_data['section']}", textfont, 300))
 
     img = template.copy()
     img.paste(qr, (76, 154))

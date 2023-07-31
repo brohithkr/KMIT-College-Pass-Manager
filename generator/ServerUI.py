@@ -1,9 +1,10 @@
 from PyQt5 import QtCore, QtWidgets, QtGui
+from PyQt5.QtCore import pyqtSlot
 from sys import exit
 from typing import Any
 import requests
 
-SERVERURL = ""
+SERVERURL = "http://localhost:8000"
 
 class ServerThreadHandler(QtCore.QObject):
     crash = QtCore.pyqtSignal(int)
@@ -86,12 +87,11 @@ class ServerDialog(QtWidgets.QDialog):
         if e.key() != QtCore.Qt.Key.Key_Escape:
             QtWidgets.QDialog.keyPressEvent(self, e)
 
+    @pyqtSlot(str)
     def error(self, msg):
         QtWidgets.QMessageBox.critical(self.parent(), "Error!", msg)
         self.userid.setFocus()
         self.show()
-        self.handler.error.disconnect(self.error)
-        self.handler.error.connect(self.error)
 
     def success(self):
         QtWidgets.QMessageBox.information(self.parent(), "Success", 

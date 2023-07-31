@@ -8,16 +8,20 @@ class PassFetcher(QtCore.QObject):
     finished = QtCore.pyqtSignal()
     def __init__(self, rno, passType):
         super().__init__(None)
-        self.rno, self.passType = rno, "monthly" if passType==1 else "daily"
+        self.rno, self.passType = rno, "daily" if passType==1 else "single-use"
         if self.passType == None:
             self.error.emit("Invalid Pass Type")
 
+    def run(self):
+        self.fetchPass()
+        # self.sendPass()
+
     def fetchPass(self):
         self.status.emit("Fetch QR code...")
-        qrB64 = fetchQR(self.rno, self.passType)
+        qr_data = fetchQR(self.rno, self.passType)
 
         self.status.emit("Generating Pass...")
-        passB64 = genPass(qrB64, self.passType)
+        passB64 = genPass(qr_data)
         self.Pass.emit(passB64)
 
     def sendPass(self):

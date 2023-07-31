@@ -1,4 +1,4 @@
-from fastapi import FastAPI, Request, Header, Response
+from fastapi import FastAPI, Request, Header, Response, status
 from pydantic import BaseModel
 from typing import Annotated, Union, List
 import pyqrcode
@@ -70,19 +70,19 @@ class reqVer(BaseModel):
 
 # functions
 
-def is_valid_user(user_type,user: User):
-    validtypes = ["mentors", "verifiers"]
-    if user_type not in validtypes:
-        return StatusResponse(success=False, msg="Invalid type access")
-    conn = db.connect()
-    userdata = db.get_data(conn, user_type, user.uid)
+# def is_valid_user(user_type,user: User):
+#     validtypes = ["mentors", "verifiers"]
+#     if user_type not in validtypes:
+#         return StatusResponse(success=False, msg="Invalid type access")
+#     conn = db.connect()
+#     userdata = db.get_data(conn, user_type, user.uid)
 
-    if not userdata:
-        return StatusResponse(success=False, msg="invalid uid")
+#     if not userdata :
+#         return StatusResponse(success=False, msg="invalid uid")
 
-    if userdata["password"] != hashhex(user.password):
-        return StatusResponse(success=False, msg="invalid password")
-    return StatusResponse(success=True, msg=f"Valid {user_type[:-1]}, Login successful")
+#     if userdata["password"] != hashhex(user.password):
+#         return StatusResponse(success=False, msg="invalid password")
+#     return StatusResponse(success=True, msg=f"Valid {user_type[:-1]}, Login successful")
 
 
 app = FastAPI()
@@ -114,17 +114,20 @@ async def add_user(
 
 
 @app.get("/api/login/{usertype}")
-async def is_valid_user(usertype: str, user: User) -> Union[StatusResponse, Pass]:
+async def is_valid_user(usertype: str, user: User, resp: Response) -> Union[StatusResponse, Pass]:
     validtypes = ["mentors", "verifiers"]
     if usertype not in validtypes:
+        resp.status_code = status.HTTP_401_UNAUTHORIZED
         return StatusResponse(success=False, msg="Invalid type access")
     conn = db.connect()
     userdata = db.get_data(conn, usertype, user.uid)
-
     if not userdata:
+        resp.status_code = status.HTTP_401_UNAUTHORIZED
         return StatusResponse(success=False, msg="invalid uid")
-
+    # if userdata["uid"] != user.uid:
+    #     return StatusResponse(success=False, msg="invalid uid")
     if userdata["password"] != hashhex(user.password):
+        resp.status_code = status.HTTP_401_UNAUTHORIZED
         return StatusResponse(success=False, msg="invalid password")
     return StatusResponse(success=True, msg=f"Valid {usertype[:-1]}, Login successful")
 

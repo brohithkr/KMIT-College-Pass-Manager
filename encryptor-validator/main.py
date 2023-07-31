@@ -28,7 +28,7 @@ else:
     if None in (SERVERURL, HKEY):
         raise Exception("Please provide environment variables or .config.ini")
 
-DAILY_PASS_VALIDITY = timedelta(years=1)
+DAILY_PASS_VALIDITY = timedelta(int(365/2))
 
 # Models
 
@@ -146,17 +146,20 @@ def issuepass(reqpass: reqPass, resp: Response, fullimage: bool = False) -> Unio
 
     pass_data = db.get_data(conn, "passes", reqpass.rno)
 
-    alreadyOwns = False
+    # alreadyOwns = False
+    resp.headers["alreadyOwns"] = "false"
 
     if pass_data:
         if reqpass.passType != pass_data["passType"]:
+            print(pass_data["passType"], reqpass.passType)
             return StatusResponse(
                 success=False,
-                msg=f"{student_data[reqpass.rno]} already owns a {passtype} pass.",
+                msg=f"{student_data['name']} already owns a {pass_data['passType']} pass.",
             )
-        alreadyOwns = True
+        # alreadyOwns = True
+        resp.headers["alreadyOwns"] = "true"
         if not fullimage:
-            return Pass(rno=reqpass.rno, **pass_data).dict().update("alreadyOwns",alreadyOwns)
+            return Pass(rno=reqpass.rno, **pass_data)
         else:
             pass_data["rno"] = reqpass.rno
             pass_data["b64qr"] = genPass(pass_data, reqpass.passType).decode()
@@ -184,11 +187,12 @@ def issuepass(reqpass: reqPass, resp: Response, fullimage: bool = False) -> Unio
 
     return resPass.dict().update("alreadyOwns",alreadyOwns)
 
-
+# @app.get("/api/get_issued_passes")
+# def 
 
 @app.post("/api/get_scan_history")
 def get_scan_history(req: reqVer):
-
+    pass
 
 
 

@@ -4,6 +4,7 @@ from typing import Annotated, Union, List
 import pyqrcode
 from PassUtil import genPass
 import dbconnector as db
+from sendMail import sendMail
 from crypto import hashhex, signData, unsignData
 from configparser import ConfigParser
 import os
@@ -31,7 +32,6 @@ else:
 DAILY_PASS_VALIDITY = timedelta(int(365/2))
 
 # Models
-
 
 class User(BaseModel):
     uid: str
@@ -67,22 +67,24 @@ class reqVer(BaseModel):
     pwd: str
     data: str
 
+class reqMail(BaseModel):
+    uid: str
+    pwd: str
+    rno: str
 
 # functions
 
-# def is_valid_user(user_type,user: User):
-#     validtypes = ["mentors", "verifiers"]
-#     if user_type not in validtypes:
-#         return StatusResponse(success=False, msg="Invalid type access")
-#     conn = db.connect()
-#     userdata = db.get_data(conn, user_type, user.uid)
-
-#     if not userdata :
-#         return StatusResponse(success=False, msg="invalid uid")
-
-#     if userdata["password"] != hashhex(user.password):
-#         return StatusResponse(success=False, msg="invalid password")
-#     return StatusResponse(success=True, msg=f"Valid {user_type[:-1]}, Login successful")
+def is_val_user(user_type,user: User):
+    validtypes = ["mentors", "verifiers"]
+    if user_type not in validtypes:
+        return "invalid type access"
+    conn = db.connect()
+    userdata = db.get_data(conn, user_type, user.uid)
+    if not userdata :
+        return "invalid uid"
+    if userdata["password"] != hashhex(user.password):
+        return "invalid password"
+    return "valid user"
 
 
 app = FastAPI()
@@ -119,14 +121,11 @@ async def is_valid_user(usertype: str, user: User, resp: Response) -> Union[Stat
     if usertype not in validtypes:
         resp.status_code = status.HTTP_401_UNAUTHORIZED
         return StatusResponse(success=False, msg="Invalid type access")
-    conn = db.connect()
-    userdata = db.get_data(conn, usertype, user.uid)
-    if not userdata:
+    res = is_val_user(usertype,user)
+    if res == "invalid uid":
         resp.status_code = status.HTTP_401_UNAUTHORIZED
         return StatusResponse(success=False, msg="invalid uid")
-    # if userdata["uid"] != user.uid:
-    #     return StatusResponse(success=False, msg="invalid uid")
-    if userdata["password"] != hashhex(user.password):
+    if res == "invalid password":
         resp.status_code = status.HTTP_401_UNAUTHORIZED
         return StatusResponse(success=False, msg="invalid password")
     return StatusResponse(success=True, msg=f"Valid {usertype[:-1]}, Login successful")
@@ -159,7 +158,6 @@ async def issuepass(reqpass: reqPass, resp: Response, fullimage: bool = False) -
                 success=False,
                 msg=f"{student_data['name']} already owns a {pass_data['passType']} pass.",
             )
-        # alreadyOwns = True
         resp.headers["alreadyOwns"] = "true"
         if not fullimage:
             return Pass(rno=reqpass.rno, **pass_data)
@@ -186,12 +184,24 @@ async def issuepass(reqpass: reqPass, resp: Response, fullimage: bool = False) -
     db.set_data(conn, "passes", "rno", resPass.dict())
 
     if fullimage:
-        resPass.b64qr = genPass(student_data, reqPass.passType).decode()
+        resPass.b64qr = genPass(resPass.dict(), reqpass.passType).decode()
 
     return resPass.dict().update("alreadyOwns",alreadyOwns)
 
-# @app.get("/api/get_issued_passes")
-# def 
+@app.post("/sendMail")
+async def send_mail(req: reqMail, resp: Response):
+    conn = db.connect()
+    student_data = db.get_data(conn, "students", req.rno)
+    pass_details = db.get_data(conn, "passes", req.rno)
+
+    pass_details["rno"] = req.rno
+    b64img = genPass(pass_details, pass_details["passType"])
+    print(str((student_data["name"], student_data["email"], b64img, pass_details["passType"])))
+    res =  sendMail(student_data["name"], student_data["email"], b64img, pass_details["passType"])
+    if not res:
+        resp.status_code = status.HTTP_500_INTERNAL_SERVER_ERROR
+    return resp
+    
 
 @app.post("/api/get_scan_history")
 def get_scan_history(req: reqVer):

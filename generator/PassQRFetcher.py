@@ -1,10 +1,9 @@
 from PyQt5 import QtCore
 from PassUtil import *
 
-
 class PassFetcher(QtCore.QObject):
     status = QtCore.pyqtSignal(str)
-    Pass = QtCore.pyqtSignal(bytes)
+    generatedPass = QtCore.pyqtSignal(bytes)
     finished = QtCore.pyqtSignal()
     def __init__(self, rno, passType):
         super().__init__(None)
@@ -15,6 +14,8 @@ class PassFetcher(QtCore.QObject):
     def run(self):
         self.fetchPass()
         # self.sendPass()
+        self.finished.emit()
+        print("done")
 
     def fetchPass(self):
         self.status.emit("Fetch QR code...")
@@ -22,7 +23,8 @@ class PassFetcher(QtCore.QObject):
 
         self.status.emit("Generating Pass...")
         passB64 = genPass(qr_data)
-        self.Pass.emit(passB64)
+        self.generatedPass.emit(passB64)
+        print("pass")
 
     def sendPass(self):
         self.status.emit("Sending Pass via email...")

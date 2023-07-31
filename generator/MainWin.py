@@ -15,14 +15,13 @@ elif __file__:
 
 DATA_DIR = joinpath(dirname(abspath(__file__)), "data")
 
-pre_configured_server: bool = False
+preconfigured_login: bool = False
 cfg = ConfigParser()
 if isfile(f'{BASE_DIR}/data/.config.ini'):
     cfg.read(f"{BASE_DIR}/data/.config.ini")
     sections = cfg.sections()
     if "Login" in sections:
-        pre_configured_server = True
-        UID, PWD = cfg["Login"]['uid'], cfg["Login"]["pwd"]
+        preconfigured_login = True
 
 class MainWindow(QtWidgets.QMainWindow):
     savecfg = QtCore.pyqtSignal(bool)
@@ -38,22 +37,23 @@ class MainWindow(QtWidgets.QMainWindow):
         self.statusbar.setSizeGripEnabled(False)
         self.Reason.setDisabled(True)
 
-    def _SetPASSimg(self, img: str | bytes | None = None, B64: bool = False) -> None:
-        self.passScene = QtWidgets.QGraphicsScene()
-        if type(img) == bytes or B64:
-            PASSimg = QtGui.QImage.fromData(b64d(img), 'PNG')
+    @pyqtSlot(bytes)
+    def _SetPASSimg(self, img: bytes | None = None) -> None:
+        passScene = QtWidgets.QGraphicsScene()
+        
+        if img == None:
+            passScene.addText("Enter Data")
+        else:
+            print("!")
+            PASSimg = QtGui.QImage.fromData(img, 'PNG')
             PASSimgbox = QtWidgets.QGraphicsPixmapItem()
-            PASSimgbox.setPixmap(QtGui.QPixmap.fromImage(PASSimg).scaled(600, 380))
-            self.passScene.addItem(PASSimgbox)
-        elif not B64:
-            if img==None: img = "Enter Data"
-            self.passScene.addText(img)
-
-        self.Pass.setScene(self.passScene)
+            PASSimgbox.setPixmap(QtGui.QPixmap.fromImage(PASSimg).scaled(400, 300))
+            passScene.addItem(PASSimgbox)
+        self.Pass.setScene(passScene)
         self.Pass.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
 
     def closeEvent(self, e):
-        if not pre_configured_server:
+        if not preconfigured_login:
             res = QtWidgets.QMessageBox.question(self, "Save Login info?", "Do you want to save Login info for future?",
                                         QtWidgets.QMessageBox.Yes | QtWidgets.QMessageBox.No)
             if res == QtWidgets.QMessageBox.Yes: self.savecfg.emit(True)
@@ -90,30 +90,7 @@ class MainWindow(QtWidgets.QMainWindow):
     def _setLoginCreds(self, UID, PWD):
         self.UID, self.PWD = UID, PWD
 
-    def _getAuth(self):
-        from ServerUI import ServerDialog, ServerThreadHandler
-        self.auth = False
-        srvrhandler = ServerThreadHandler()
-        srvrdlg = ServerDialog(self, {"uid": self.UID, "pwd": ""}, srvrhandler, True)
-        srvrthread = QtCore.QThread()
-        srvrhandler.moveToThread(srvrthread)
-        srvrthread.started.connect(srvrdlg.exec)
-        srvrthread.started.connect(lambda: self.status.setText("Authenticating..."))
-        srvrthread.started.connect(lambda: self.setDisabled(True))
-        srvrhandler.error.connect(srvrdlg.error)
-        srvrhandler.success.connect(srvrdlg.success)
-        srvrdlg.invalid.connect(lambda: QtWidgets.QMessageBox.critical(self, "Attention!", "Unauthorised Access.")\
-                                        and self._clear())
-        srvrdlg.accepted.connect(lambda: srvrhandler.login(*srvrdlg.getInputs()))
-        srvrhandler.crash.connect(srvrdlg.crash)
-        srvrthread.finished.connect(srvrhandler.deleteLater)
-        srvrthread.finished.connect(srvrthread.deleteLater)
-        srvrhandler.success.connect(lambda: self.setDisabled(False))
-        srvrthread.start()            
-
     def _preSend(self):
-        from ServerUI import SERVERURL
-
         self.status.setText("Processing data...")
         self.Send.setDisabled(True)
         rno, reason = self.rno.text(), self.Reason.text()
@@ -139,15 +116,21 @@ class MainWindow(QtWidgets.QMainWindow):
         thread = QtCore.QThread()
         sender = PassFetcher(self.rno.text(), self.PassType.currentIndex())
         sender.moveToThread(thread)
-        thread.started.connect(sender.fetchPass)
+        thread.started.connect(sender.run)
         sender.status.connect(self._setStatus)
-        sender.Pass.connect(lambda img: self._SetPASSimg(img, True))
+        sender.generatedPass.connect(self._SetPASSimg)
+        sender.finished.connect(self.success)
         sender.finished.connect(thread.quit)
         sender.finished.connect(self._clear)
-        # thread.finished.connect(thread.deleteLater)
-        # thread.finished.connect(sender.deleteLater)
+        thread.finished.connect(thread.deleteLater)
+        thread.finished.connect(sender.deleteLater)
         thread.start()
+        thread.wait()
 
     @pyqtSlot(str)
     def _setStatus(self, status):
         self.status.setText(status)
+
+    @pyqtSlot()
+    def success(self):
+        QtWidgets.QMessageBox.information(self, "Success", "Pass Sent successfully")

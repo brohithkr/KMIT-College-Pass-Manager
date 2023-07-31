@@ -20,13 +20,13 @@ cfg.read(f"{BASE_DIR}/data/.config.ini")
 UID, PWD = cfg["Login"]["uid"], cfg["Login"]["pwd"]
 
 def fetchQR(rno, passtype) -> str:           
-    passqr_data = requests.post(f"{SERVERURL}/PassQR",
+    passqr_data = requests.post(f"{SERVERURL}/api/issuepass",
         json={
             "uid": UID,
             "pwd": PWD,
             "rno": rno,
             "passType": passtype
-        })
+        }).json()
     return passqr_data
 
 # from https://itnext.io/how-to-wrap-text-on-image-using-python-8f569860f89e + modifications
@@ -71,10 +71,11 @@ def genPass(pass_data: dict) -> bytes:
         painter.text((470, y), line, fill=(2,2,2), font=textfont)
         y += height
 
+    img = img.resize((400, 300))
+
     buffer = BytesIO()
     img.save(buffer, format='png')
     passB64 = b64e(buffer.getvalue())
-    img.show()
     return passB64
 
 def sendMail(rno, passType) -> bool | None:

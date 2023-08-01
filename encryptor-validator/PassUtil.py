@@ -2,11 +2,10 @@ from io import BytesIO
 from base64 import b64decode as b64d, b64encode as b64e
 from PIL import Image, ImageDraw, ImageFont
 import os
-from os.path import dirname, abspath, join as joinpath
+from os.path import dirname, abspath
 from configparser import ConfigParser
 from datetime import date
 import sys, requests
-
 
 BASE_DIR = None
 if getattr(sys, 'frozen', False):
@@ -17,9 +16,9 @@ elif __file__:
 SERVERURL, HKEY = None, None
 
 if os.path.isfile(f"{BASE_DIR}/.config.ini"):
-    configur = ConfigParser()
-    configur.read(f"{BASE_DIR}/.config.ini")
-    SERVERURL, HKEY = configur.get("server","SERVERURL"), configur.get("server","HKEY")
+    cfg = ConfigParser()
+    cfg.read(f"{BASE_DIR}/.config.ini")
+    SERVERURL, HKEY = cfg.get("server","SERVERURL"), cfg.get("server","HKEY")
 else:
     SERVERURL, HKEY = os.environ.get("SERVERURL"), os.environ.get("HKEY")
     print(SERVERURL, HKEY)
@@ -72,6 +71,3 @@ def genPass(pass_data: dict, passType: str) -> str:
     img.save(buffer, format='png')
     passB64 = b64e(buffer.getvalue())
     return passB64.decode()
-
-def sendMail(rno, passType) -> bool | None:
-    return requests.post(f"{SERVERURL}/sendMail", json={"rno": rno, "type": passType}).json()["status"]

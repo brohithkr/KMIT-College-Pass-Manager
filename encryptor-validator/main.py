@@ -92,7 +92,7 @@ def is_val_user(conn, user_type, user: User):
         return "invalid uid", False
     if userdata["password"] != hashhex(user.password):
         return "invalid password"
-    return "valid user", False
+    return "valid user", True
 
 
 def filter_todays_history(hist):
@@ -211,32 +211,32 @@ async def issuepass(
 
 
 @app.post("/sendMail")
-async def send_mail(req: reqMail, resp: Response):
-    if not is_val_user(User(uid=req.uid, pwd= req.pwd)):
-        resp.status_code = status.HTTP_401_UNAUTHORIZED
-        return resp
+async def send_mail(req: reqMail, resp: Response) -> StatusResponse:
     conn = db.connect()
+    if not is_val_user(conn, "mentors", User(uid=req.uid, password= req.pwd))[1]:
+        resp.status_code = status.HTTP_401_UNAUTHORIZED
+        return StatusResponse(success=False, msg="Unauthorized Access")
     student_data = db.get_data(conn, "students", req.rno)
     pass_details = db.get_data(conn, "passes", req.rno)
 
     pass_details["rno"] = req.rno
     b64img = genPass(pass_details, pass_details["passType"])
-    print(
-        str(
-            (
-                student_data["name"],
-                student_data["email"],
-                b64img,
-                pass_details["passType"],
-            )
-        )
-    )
+    # print(
+    #     str(
+    #         (
+    #             student_data["name"],
+    #             student_data["email"],
+    #             b64img,
+    #             pass_details["passType"],
+    #         )
+    #     )
+    # )
     res = sendMail(
         student_data["name"], student_data["email"], b64img, pass_details["passType"]
     )
     if not res:
         resp.status_code = status.HTTP_500_INTERNAL_SERVER_ERROR
-    return resp
+    return StatusResponse(success=True, msg= "email sent")
 
 
 @app.post("/api/get_scan_history")
@@ -270,7 +270,7 @@ def audit_scan(req: reqVer, resp: Response) -> StatusResponse:
         req.rno,
         [datetime.now(timezone("Asia/Kolkata")).strftime("%d-%m-%Y %H:%M:%S")],
     )
-    StatusResponse(success=True, msg="Pass Scan Audited")
+    return StatusResponse(success=True, msg="Pass Scan Audited")
 
 
 

@@ -76,14 +76,14 @@ class MainWindow(QtWidgets.QMainWindow):
         self.Reason.returnPressed.connect(self.actionSend.trigger)
         self.actionSend.triggered.connect(lambda: self._preSend() if self.Send.isEnabled() else None)
 
-    def _clear(self) -> None:
+    def _clear(self, clearPass = True) -> None:
         self.PassType.setCurrentIndex(-1)
         self.Send.setDisabled(False)
         self.rno.clear()
         self.Reason.clear()
-        self._SetPASSimg()
         self.status.setText("Waiting for data...")
         self.rno.setFocus()
+        if clearPass: self._SetPASSimg()
 
     def resetThreads(self):
         self.thread = None
@@ -121,13 +121,24 @@ class MainWindow(QtWidgets.QMainWindow):
         self.thread.started.connect(self.sender.run)
         self.sender.status.connect(self._setStatus)
         self.sender.generatedPass.connect(self._SetPASSimg)
+        self.sender.mailRes.connect(self._mailResHandler)
         self.sender.finished.connect(self.success)
         self.sender.finished.connect(self.thread.quit)
-        self.sender.finished.connect(self._clear)
         self.thread.finished.connect(self.thread.deleteLater)
         self.thread.finished.connect(self.sender.deleteLater)
         self.thread.destroyed.connect(self.resetThreads)
         self.thread.start()
+
+    @pyqtSlot(int)
+    def _mailResHandler(self, status: int):
+        if status == 401:
+            QtWidgets.QMessageBox.critical(self, "Error!", "Unauthorised Access.")
+        elif status == 406:
+            QtWidgets.QMessageBox.critical(self, "Error!", "Sending E-Mail Failed.")
+            self._clear(False)
+        elif status == 200:
+            QtWidgets.QMessageBox.information(self, "Success!", "E-Mail Sent successfully.")
+            self._clear()
 
     @pyqtSlot(str)
     def _setStatus(self, status):

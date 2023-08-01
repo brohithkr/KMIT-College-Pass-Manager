@@ -27,7 +27,7 @@ def fetchQR(rno, passtype) -> str:
             "rno": rno,
             "passType": passtype
         })
-    # print(response.content)
+    print(response.content)
     passqr_data = response.json()
     return passqr_data
 
@@ -80,8 +80,8 @@ def genPass(pass_data: dict) -> bytes:
     passB64 = b64e(buffer.getvalue())
     return passB64
 
-def sendMail(rno) -> bool | None:
+def sendMail(rno) -> int :
     return requests.post(f"{SERVERURL}/sendMail", 
                          json={"rno": rno,
                                "uid": UID,
-                               "pwd": PWD})
+                               "pwd": PWD}).status_code

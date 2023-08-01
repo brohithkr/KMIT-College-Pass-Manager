@@ -5,6 +5,7 @@ from time import sleep
 class PassFetcher(QtCore.QObject):
     status = QtCore.pyqtSignal(str)
     generatedPass = QtCore.pyqtSignal(bytes)
+    mailRes = QtCore.pyqtSignal(int)
     finished = QtCore.pyqtSignal()
     def __init__(self, rno, passType):
         super().__init__(None)
@@ -14,7 +15,7 @@ class PassFetcher(QtCore.QObject):
 
     def run(self):
         self.fetchPass()
-        # self.sendPass()
+        self.sendPass()
         sleep(3)
         self.finished.emit()
 
@@ -28,6 +29,6 @@ class PassFetcher(QtCore.QObject):
 
     def sendPass(self):
         self.status.emit("Sending Pass via email...")
-        retVal = sendMail(self.rno, self.passType)
-        self.result.emit(str(retVal))
+        mailStatus = sendMail(self.rno)
+        self.mailRes.emit(mailStatus)
         self.finished.emit()

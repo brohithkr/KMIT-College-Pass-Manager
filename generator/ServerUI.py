@@ -17,7 +17,6 @@ class ServerThreadHandler(QtCore.QObject):
         response = None
 
         try:
-            print(SERVERURL)
             response = requests.get(f"{SERVERURL}/api/login/mentors",
                                     json={"uid": UID,
                                           "password": PWD}).status_code

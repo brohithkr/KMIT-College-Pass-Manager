@@ -91,7 +91,7 @@ def is_val_user(conn, user_type, user: User):
     if not userdata:
         return "invalid uid", False
     if userdata["password"] != hashhex(user.password):
-        return "invalid password"
+        return "invalid password", False
     return "valid user", True
 
 
@@ -131,7 +131,7 @@ async def add_user(
     )
 
 
-@app.get("/api/login/{usertype}", status_code= 200)
+@app.get("/api/login/{usertype}", status_code=200)
 async def is_valid_user(
     usertype: str, user: User, resp: Response
 ) -> Union[StatusResponse, Pass]:
@@ -213,7 +213,7 @@ async def issuepass(
 @app.post("/sendMail")
 async def send_mail(req: reqMail, resp: Response) -> StatusResponse:
     conn = db.connect()
-    if not is_val_user(conn, "mentors", User(uid=req.uid, password= req.pwd))[1]:
+    if not is_val_user(conn, "mentors", User(uid=req.uid, password=req.pwd))[1]:
         resp.status_code = status.HTTP_401_UNAUTHORIZED
         return StatusResponse(success=False, msg="Unauthorized Access")
     student_data = db.get_data(conn, "students", req.rno)
@@ -221,49 +221,41 @@ async def send_mail(req: reqMail, resp: Response) -> StatusResponse:
 
     pass_details["rno"] = req.rno
     b64img = genPass(pass_details, pass_details["passType"])
-    # print(
-    #     str(
-    #         (
-    #             student_data["name"],
-    #             student_data["email"],
-    #             b64img,
-    #             pass_details["passType"],
-    #         )
-    #     )
-    # )
+
     res = sendMail(
         student_data["name"], student_data["email"], b64img, pass_details["passType"]
     )
     if not res:
-        resp.status_code = status.HTTP_500_INTERNAL_SERVER_ERROR
-    return StatusResponse(success=True, msg= "email sent")
+        resp.status_code = status.HTTP_409_CONFLICT
+    return StatusResponse(success=True, msg="email sent")
 
 
 @app.post("/api/get_scan_history")
 def get_scan_history(req: reqVer, resp: Response) -> Union[History, StatusResponse]:
     conn = db.connect()
     is_val = (
-        is_val_user(conn, "mentor", req)[1] or is_val_user(conn, "verifiers", req)[1]
+        is_val_user(conn, "mentor", User(uid=req.uid, password=req.pwd))[1]
+        or is_val_user(conn, "verifiers", User(uid=req.uid, password=req.pwd))[1]
     )
     if not is_val:
-
         return StatusResponse(success=False, msg="Invalid Credentials")
 
 
-@app.post("/api/audit_scan", status_code= 200)
+@app.post("/api/audit_scan", status_code=200)
 def audit_scan(req: reqVer, resp: Response) -> StatusResponse:
     conn = db.connect()
     is_val = (
-        is_val_user(conn, "mentor", req)[1] or is_val_user(conn, "verifiers", req)[1]
+        is_val_user(conn, "mentor", User(uid=req.uid, password=req.pwd))[1]
+        or is_val_user(conn, "verifiers", User(uid=req.uid, password=req.pwd))[1]
     )
     if not is_val:
         resp.status_code = status.HTTP_401_UNAUTHORIZED
         return StatusResponse(success=False, msg="Invalid Credentials")
-    history = db.get_data(conn,"scan_history",req.rno)
+    history = db.get_data(conn, "scan_history", req.rno)
     todays_history = filter_todays_history(history)
     if len(todays_history) > 2:
         resp.status_code = status.HTTP_400_BAD_REQUEST
-        return StatusResponse(success=False, msg = "Already Scanned twice")
+        return StatusResponse(success=False, msg="Already Scanned twice")
     db.set_data(
         conn,
         "scan_history",
@@ -271,7 +263,6 @@ def audit_scan(req: reqVer, resp: Response) -> StatusResponse:
         [datetime.now(timezone("Asia/Kolkata")).strftime("%d-%m-%Y %H:%M:%S")],
     )
     return StatusResponse(success=True, msg="Pass Scan Audited")
-
 
 
 # @app.post("/api/get_history")

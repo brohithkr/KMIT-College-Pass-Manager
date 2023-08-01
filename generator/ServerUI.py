@@ -17,6 +17,7 @@ class ServerThreadHandler(QtCore.QObject):
         response = None
 
         try:
+            print(SERVERURL)
             response = requests.get(f"{SERVERURL}/api/login/mentors",
                                     json={"uid": UID,
                                           "password": PWD}).status_code
@@ -37,7 +38,7 @@ class ServerDialog(QtWidgets.QDialog):
     invalid = QtCore.pyqtSignal()
     def __init__(self, parent=None, creds=None, handler:ServerThreadHandler = None, verify = False):
         super().__init__(parent=parent)
-        self.setWindowTitle("Server Login" if verify else "Verify User")
+        self.setWindowTitle("Server Login" if not verify else "Verify User")
 
         self.handler = handler
         self.verify = verify

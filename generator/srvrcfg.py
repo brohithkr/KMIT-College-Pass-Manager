@@ -1,1 +1,1 @@
-SERVERURL = "http://localhost:8000"
+SERVERURL = "https://kmitcollegepass.onrender.com"

@@ -27,7 +27,7 @@ def fetchQR(rno, passtype) -> str:
             "rno": rno,
             "passType": passtype
         })
-    print(response.content)
+    # print(response.content)
     passqr_data = response.json()
     return passqr_data
 
@@ -56,8 +56,6 @@ def genPass(pass_data: dict) -> bytes:
     template = Image.open(f"{BASE_DIR}/data/{pass_data['passType']}.png")
 
     textfont = ImageFont.truetype(f"{DATA_DIR}/Lora.ttf", 24)
-    today = date.today()
-    today = today.strftime(r"%d/%m/%Y")
     details = text_wrap(pass_data["name"], textfont, 300)
     details.extend(text_wrap(f"{pass_data['rno']} {pass_data['section']}", textfont, 300))
 
@@ -67,7 +65,7 @@ def genPass(pass_data: dict) -> bytes:
 
     datefont = ImageFont.truetype(f"{DATA_DIR}/Verdana.ttf", 40)
     painter = ImageDraw.Draw(img)
-    painter.text((110, 470), today, fill=(0,0,0), font=datefont)
+    painter.text((110, 470), pass_data["issueDate"], fill=(0,0,0), font=datefont)
     y, height = 415, textfont.getbbox("hg")[3]+5
     for line in details:
         painter.text((470, y), line, fill=(2,2,2), font=textfont)

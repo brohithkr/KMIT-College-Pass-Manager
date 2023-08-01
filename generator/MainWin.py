@@ -83,7 +83,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.Reason.clear()
         self.status.setText("Waiting for data...")
         self.rno.setFocus()
-        if clearPass: self._SetPASSimg()
+        if clearPass: self._SetPASSimg(None)
 
     def resetThreads(self):
         self.thread = None
@@ -122,7 +122,6 @@ class MainWindow(QtWidgets.QMainWindow):
         self.sender.status.connect(self._setStatus)
         self.sender.generatedPass.connect(self._SetPASSimg)
         self.sender.mailRes.connect(self._mailResHandler)
-        self.sender.finished.connect(self.success)
         self.sender.finished.connect(self.thread.quit)
         self.thread.finished.connect(self.thread.deleteLater)
         self.thread.finished.connect(self.sender.deleteLater)
@@ -143,7 +142,3 @@ class MainWindow(QtWidgets.QMainWindow):
     @pyqtSlot(str)
     def _setStatus(self, status):
         self.status.setText(status)
-
-    @pyqtSlot()
-    def success(self):
-        QtWidgets.QMessageBox.information(self, "Success", "Pass Sent successfully")

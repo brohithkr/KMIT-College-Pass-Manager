@@ -13,6 +13,5 @@ build/
 *.spec
 *.exe
 ~*
-data
 .env
 srvrcfg.py

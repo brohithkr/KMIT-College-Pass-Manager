@@ -1,1 +1,0 @@
-SERVERURL = "https://kmitcollegepass.onrender.com"

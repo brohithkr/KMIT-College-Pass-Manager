@@ -78,19 +78,19 @@ def remove_data(conn,table_name,uid):
         
 
 
-def get_data(conn, table_name, uid, key=None):
+def get_data(conn, table_name, primkey, key=None):
     res = None
     if table_name in ["scan_history","expired_passes"]:
         res = []
-        for i in range(conn.llen(f"userdata:{table_name}:{uid}")):
-            res.append(conn.lindex(f"userdata:{table_name}:{uid}",i))
+        for i in range(conn.llen(f"userdata:{table_name}:{primkey}")):
+            res.append(conn.lindex(f"userdata:{table_name}:{primkey}",i))
         return res
     if key is None:
-        res = conn.hgetall(f"userdata:{table_name}:{uid}")
+        res = conn.hgetall(f"userdata:{table_name}:{primkey}")
         decoded = decode_dict(res)
         return decoded
     else:
-        res = conn.hget(f"userdata:{table_name}:{uid}", key=key)
+        res = conn.hget(f"userdata:{table_name}:{primkey}", key=key)
         return res
 
 

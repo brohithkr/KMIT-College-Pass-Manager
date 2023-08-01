@@ -8,7 +8,7 @@ from sendMail import sendMail
 from crypto import hashhex, signData, unsignData
 from configparser import ConfigParser
 import os
-from datetime import datetime,date,timedelta
+from datetime import datetime, date, timedelta
 from pytz import timezone
 
 # config params
@@ -29,9 +29,10 @@ else:
     if None in (SERVERURL, HKEY):
         raise Exception("Please provide environment variables or .config.ini")
 
-DAILY_PASS_VALIDITY = timedelta(int(365/2))
+DAILY_PASS_VALIDITY = timedelta(int(365 / 2))
 
 # Models
+
 
 class User(BaseModel):
     uid: str
@@ -67,24 +68,39 @@ class reqVer(BaseModel):
     pwd: str
     data: str
 
+
+class History(BaseModel):
+    rno: str
+    history: List
+
+
 class reqMail(BaseModel):
     uid: str
     pwd: str
     rno: str
 
+
 # functions
 
-def is_val_user(user_type,user: User):
+
+def is_val_user(conn, user_type, user: User):
     validtypes = ["mentors", "verifiers"]
     if user_type not in validtypes:
-        return "invalid type access"
-    conn = db.connect()
+        return "invalid type access", False
     userdata = db.get_data(conn, user_type, user.uid)
-    if not userdata :
-        return "invalid uid"
+    if not userdata:
+        return "invalid uid", False
     if userdata["password"] != hashhex(user.password):
         return "invalid password"
-    return "valid user"
+    return "valid user", False
+
+
+def filter_todays_history(hist):
+    todays_hist = []
+    for i in hist[-2:]:
+        if (datetime.now() - i.strptime("%d-%m-%Y %H:%M:%S")).days == 0:
+            today_hist.append(i)
+    return todays_hist
 
 
 app = FastAPI()
@@ -115,13 +131,16 @@ async def add_user(
     )
 
 
-@app.get("/api/login/{usertype}")
-async def is_valid_user(usertype: str, user: User, resp: Response) -> Union[StatusResponse, Pass]:
+@app.get("/api/login/{usertype}", status_code= 200)
+async def is_valid_user(
+    usertype: str, user: User, resp: Response
+) -> Union[StatusResponse, Pass]:
     validtypes = ["mentors", "verifiers"]
     if usertype not in validtypes:
         resp.status_code = status.HTTP_401_UNAUTHORIZED
         return StatusResponse(success=False, msg="Invalid type access")
-    res = is_val_user(usertype,user)
+    conn = db.connect()
+    res = is_val_user(conn, usertype, user)[0]
     if res == "invalid uid":
         resp.status_code = status.HTTP_401_UNAUTHORIZED
         return StatusResponse(success=False, msg="invalid uid")
@@ -132,7 +151,9 @@ async def is_valid_user(usertype: str, user: User, resp: Response) -> Union[Stat
 
 
 @app.post("/api/issuepass")
-async def issuepass(reqpass: reqPass, resp: Response, fullimage: bool = False) -> Union[Pass, StatusResponse]:
+async def issuepass(
+    reqpass: reqPass, resp: Response, fullimage: bool = False
+) -> Union[Pass, StatusResponse]:
     conn = db.connect()
     mentor_data = db.get_data(conn, "mentors", reqpass.uid)
     student_data = db.get_data(conn, "students", reqpass.rno)
@@ -164,7 +185,7 @@ async def issuepass(reqpass: reqPass, resp: Response, fullimage: bool = False) -
         else:
             pass_data["rno"] = reqpass.rno
             pass_data["b64qr"] = genPass(pass_data, reqpass.passType).decode()
-            
+
             return Pass(rno=reqpass.rno, **pass_data)
 
     signedrno = signData(reqpass.rno, mentor_data["private_key"], reqpass.uid)
@@ -186,27 +207,70 @@ async def issuepass(reqpass: reqPass, resp: Response, fullimage: bool = False) -
     if fullimage:
         resPass.b64qr = genPass(resPass.dict(), reqpass.passType).decode()
 
-    return resPass.dict().update("alreadyOwns",alreadyOwns)
+    return resPass.dict().update("alreadyOwns", alreadyOwns)
+
 
 @app.post("/sendMail")
 async def send_mail(req: reqMail, resp: Response):
+    if not is_val_user(User(uid=req.uid, pwd= req.pwd)):
+        resp.status_code = status.HTTP_401_UNAUTHORIZED
+        return resp
     conn = db.connect()
     student_data = db.get_data(conn, "students", req.rno)
     pass_details = db.get_data(conn, "passes", req.rno)
 
     pass_details["rno"] = req.rno
     b64img = genPass(pass_details, pass_details["passType"])
-    print(str((student_data["name"], student_data["email"], b64img, pass_details["passType"])))
-    res =  sendMail(student_data["name"], student_data["email"], b64img, pass_details["passType"])
+    print(
+        str(
+            (
+                student_data["name"],
+                student_data["email"],
+                b64img,
+                pass_details["passType"],
+            )
+        )
+    )
+    res = sendMail(
+        student_data["name"], student_data["email"], b64img, pass_details["passType"]
+    )
     if not res:
         resp.status_code = status.HTTP_500_INTERNAL_SERVER_ERROR
     return resp
-    
+
 
 @app.post("/api/get_scan_history")
-def get_scan_history(req: reqVer):
-    pass
+def get_scan_history(req: reqVer, resp: Response) -> Union[History, StatusResponse]:
+    conn = db.connect()
+    is_val = (
+        is_val_user(conn, "mentor", req)[1] or is_val_user(conn, "verifiers", req)[1]
+    )
+    if not is_val:
 
+        return StatusResponse(success=False, msg="Invalid Credentials")
+
+
+@app.post("/api/audit_scan", status_code= 200)
+def audit_scan(req: reqVer, resp: Response) -> StatusResponse:
+    conn = db.connect()
+    is_val = (
+        is_val_user(conn, "mentor", req)[1] or is_val_user(conn, "verifiers", req)[1]
+    )
+    if not is_val:
+        resp.status_code = status.HTTP_401_UNAUTHORIZED
+        return StatusResponse(success=False, msg="Invalid Credentials")
+    history = db.get_data(conn,"scan_history",req.rno)
+    todays_history = filter_todays_history(history)
+    if len(todays_history) > 2:
+        resp.status_code = status.HTTP_400_BAD_REQUEST
+        return StatusResponse(success=False, msg = "Already Scanned twice")
+    db.set_data(
+        conn,
+        "scan_history",
+        req.rno,
+        [datetime.now(timezone("Asia/Kolkata")).strftime("%d-%m-%Y %H:%M:%S")],
+    )
+    StatusResponse(success=True, msg="Pass Scan Audited")
 
 
 
@@ -255,7 +319,7 @@ def get_scan_history(req: reqVer):
 #             set_data(conn, "expired_passes", rno, pass_details)
 #             return history
 
-#     # if 
+#     # if
 
 #     db.set_data(
 #         conn,
@@ -267,17 +331,13 @@ def get_scan_history(req: reqVer):
 
 #     return history
 
-    # if not student_data:
-    #     return StatusResponse(success=False, msg="Insuffitient data")
-    # mentor_data = db.get_data(conn, "mentors", uid)
+# if not student_data:
+#     return StatusResponse(success=False, msg="Insuffitient data")
+# mentor_data = db.get_data(conn, "mentors", uid)
 
-    # if not unsignData(rno, signed_data, mentor_data["public_key"]):
-    #     return StatusResponse(success=False, msg="Invalid Pass")
-    # return StatusResponse(success=True, msg="Pass Verified")
-
-
-
-
+# if not unsignData(rno, signed_data, mentor_data["public_key"]):
+#     return StatusResponse(success=False, msg="Invalid Pass")
+# return StatusResponse(success=True, msg="Pass Verified")
 
 
 @app.head("/wake_up")

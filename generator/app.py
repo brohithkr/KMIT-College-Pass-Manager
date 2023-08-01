@@ -82,7 +82,6 @@ if __name__ == "__main__":
     srvrhandler.success.connect(saveCFG) 
     
     srvrthread.start()
-    
 
     win.show()
 

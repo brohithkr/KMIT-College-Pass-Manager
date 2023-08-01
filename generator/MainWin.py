@@ -5,7 +5,7 @@ from PyQt5 import QtCore, QtWidgets, QtGui
 from PyQt5.QtCore import pyqtSlot 
 from PyQt5.uic import loadUi
 from configparser import ConfigParser
-import sys, requests
+import sys
 
 BASE_DIR = None
 if getattr(sys, 'frozen', False):
@@ -40,12 +40,10 @@ class MainWindow(QtWidgets.QMainWindow):
     @pyqtSlot(bytes)
     def _SetPASSimg(self, img: bytes | None = None) -> None:
         passScene = QtWidgets.QGraphicsScene()
-        
         if img == None:
             passScene.addText("Enter Data")
         else:
-            print("!")
-            PASSimg = QtGui.QImage.fromData(img, 'PNG')
+            PASSimg = QtGui.QImage.fromData(b64d(img), 'PNG')
             PASSimgbox = QtWidgets.QGraphicsPixmapItem()
             PASSimgbox.setPixmap(QtGui.QPixmap.fromImage(PASSimg).scaled(400, 300))
             passScene.addItem(PASSimgbox)
@@ -76,7 +74,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.Send.setAutoDefault(True)
         self.actionSend.triggered.connect(lambda: self.rno.setText(self.rno.text().upper()))
         self.Reason.returnPressed.connect(self.actionSend.trigger)
-        self.actionSend.triggered.connect(self._preSend)
+        self.actionSend.triggered.connect(lambda: self._preSend() if self.Send.isEnabled() else None)
 
     def _clear(self) -> None:
         self.PassType.setCurrentIndex(-1)
@@ -87,6 +85,10 @@ class MainWindow(QtWidgets.QMainWindow):
         self.status.setText("Waiting for data...")
         self.rno.setFocus()
 
+    def resetThreads(self):
+        self.thread = None
+        self.sender = None
+
     def _setLoginCreds(self, UID, PWD):
         self.UID, self.PWD = UID, PWD
 
@@ -95,7 +97,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.Send.setDisabled(True)
         rno, reason = self.rno.text(), self.Reason.text()
 
-        if rno == '' or (reason == '' and self.PassType.currentIndex == 0):
+        if rno == '' or (reason == '' and self.PassType.currentIndex != 1):
             QtWidgets.QMessageBox.information(self, "Empty Data", "Please fill out all the fields")
             self.Send.setDisabled(False)
             return
@@ -113,19 +115,19 @@ class MainWindow(QtWidgets.QMainWindow):
 
         self.status.setText("Working...")
         
-        thread = QtCore.QThread()
-        sender = PassFetcher(self.rno.text(), self.PassType.currentIndex())
-        sender.moveToThread(thread)
-        thread.started.connect(sender.run)
-        sender.status.connect(self._setStatus)
-        sender.generatedPass.connect(self._SetPASSimg)
-        sender.finished.connect(self.success)
-        sender.finished.connect(thread.quit)
-        sender.finished.connect(self._clear)
-        thread.finished.connect(thread.deleteLater)
-        thread.finished.connect(sender.deleteLater)
-        thread.start()
-        thread.wait()
+        self.thread = QtCore.QThread()
+        self.sender = PassFetcher(self.rno.text(), self.PassType.currentIndex())
+        self.sender.moveToThread(self.thread)
+        self.thread.started.connect(self.sender.run)
+        self.sender.status.connect(self._setStatus)
+        self.sender.generatedPass.connect(self._SetPASSimg)
+        self.sender.finished.connect(self.success)
+        self.sender.finished.connect(self.thread.quit)
+        self.sender.finished.connect(self._clear)
+        self.thread.finished.connect(self.thread.deleteLater)
+        self.thread.finished.connect(self.sender.deleteLater)
+        self.thread.destroyed.connect(self.resetThreads)
+        self.thread.start()
 
     @pyqtSlot(str)
     def _setStatus(self, status):

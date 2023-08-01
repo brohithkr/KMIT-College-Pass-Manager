@@ -80,12 +80,12 @@
      </property>
      <item>
       <property name="text">
-       <string>Gate Pass (One Time)</string>
+       <string>Gate Pass (Single Use)</string>
       </property>
      </item>
      <item>
       <property name="text">
-       <string>Lunch Pass (Monthly)</string>
+       <string>Lunch Pass (Daily Use)</string>
       </property>
      </item>
     </widget>

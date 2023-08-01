@@ -60,10 +60,10 @@ class MainWindow(QtWidgets.QMainWindow):
 
     @pyqtSlot(int)
     def comboBoxHandler(self, selectedOption: int):
-        if selectedOption == 1: # Lunch Pass (Monthly)
+        if selectedOption == 1: # Lunch Pass (Daily)
             self.Reason.setPlaceholderText("Reason for leave. (N/A)") 
             self.Reason.setDisabled(True)
-        elif selectedOption == 0: # Gate Pass (One Time)
+        elif selectedOption == 0: # Gate Pass (SingleTime)
             self.Reason.setEnabled(True) 
             self.Reason.setPlaceholderText("Reason for leave.")
 

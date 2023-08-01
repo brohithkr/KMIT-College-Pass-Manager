@@ -5,7 +5,7 @@ from os.path import dirname, abspath, join as joinpath
 from configparser import ConfigParser
 from datetime import date
 import sys, requests
-from ServerUI import SERVERURL
+from srvrcfg import SERVERURL
 
 BASE_DIR = None
 if getattr(sys, 'frozen', False):
@@ -80,5 +80,8 @@ def genPass(pass_data: dict) -> bytes:
     passB64 = b64e(buffer.getvalue())
     return passB64
 
-def sendMail(rno, passType) -> bool | None:
-    return requests.post(f"{SERVERURL}/sendMail", json={"rno": rno, "type": passType}).json()["status"]
+def sendMail(rno) -> bool | None:
+    return requests.post(f"{SERVERURL}/sendMail", 
+                         json={"rno": rno,
+                               "uid": UID,
+                               "pwd": PWD})

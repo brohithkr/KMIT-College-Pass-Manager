@@ -110,7 +110,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self._sendPass()
 
     def _sendPass(self):        
-        from ServerUI import SERVERURL
+        from srvrcfg import SERVERURL
         from PassQRFetcher import PassFetcher
 
         self.status.setText("Working...")

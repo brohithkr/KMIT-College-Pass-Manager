@@ -196,7 +196,7 @@ async def send_mail(req: reqMail, resp: Response):
 
     pass_details["rno"] = req.rno
     b64img = genPass(pass_details, pass_details["passType"])
-    print(str((student_data["name"], student_data["email"], b64img, pass_details["passType"])))
+    # print(str((student_data["name"], student_data["email"], b64img, pass_details["passType"])))
     res =  sendMail(student_data["name"], student_data["email"], b64img, pass_details["passType"])
     if not res:
         resp.status_code = status.HTTP_500_INTERNAL_SERVER_ERROR

@@ -44,7 +44,7 @@ def text_wrap(text, font, max_width):
                 lines.append(line)
         return lines
 
-def genPass(pass_data: dict, passType: str) -> bytes:
+def genPass(pass_data: dict, passType: str) -> str:
     qr = Image.open(BytesIO(b64d(pass_data["b64qr"].encode()))).resize((312, 312))
     studentimg = requests.get(f"http://teleuniv.in/sanjaya/student-images/{pass_data['rno']}.jpg").content
     studentimg = Image.open(BytesIO(studentimg)).resize((188, 252))
@@ -71,7 +71,6 @@ def genPass(pass_data: dict, passType: str) -> bytes:
     buffer = BytesIO()
     img.save(buffer, format='png')
     passB64 = b64e(buffer.getvalue())
-    img.show()
     return passB64.decode()
 
 def sendMail(rno, passType) -> bool | None:

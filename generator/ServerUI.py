@@ -4,7 +4,7 @@ from sys import exit
 from typing import Any
 import requests
 
-SERVERURL = "http://localhost:8000"
+from srvrcfg import SERVERURL
 
 class ServerThreadHandler(QtCore.QObject):
     crash = QtCore.pyqtSignal(int)
@@ -17,7 +17,9 @@ class ServerThreadHandler(QtCore.QObject):
         response = None
 
         try:
-            response = requests.get(f"{SERVERURL}/api/login/mentors", json={"uid": UID, "password": PWD}).status_code
+            response = requests.get(f"{SERVERURL}/api/login/mentors",
+                                    json={"uid": UID,
+                                          "password": PWD}).status_code
         except (requests.ConnectionError, requests.Timeout):
             self.error.emit("Internet Error! Try Again.")
             return

@@ -79,7 +79,7 @@ function displayPopup(isValid, message, history) {
     }
     for(let i=0; i< history.length; i++){
         let htmlstr = "<li>" + history[i][0] - history[i][1] + "</li>";
-        document.querySelector(".history").innerHTML += htmlstr;
+        document.querySelector(".history-list").innerHTML += htmlstr;
     }
     messagebox.innerHTML = message;
     modalbox.style.display = "block";

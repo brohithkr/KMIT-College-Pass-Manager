@@ -93,6 +93,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.UID, self.PWD = UID, PWD
 
     def _preSend(self):
+        self._clear()
         self.status.setText("Processing data...")
         self.Send.setDisabled(True)
         rno, reason = self.rno.text(), self.Reason.text()

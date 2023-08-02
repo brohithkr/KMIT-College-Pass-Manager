@@ -65,6 +65,7 @@ class ServerDialog(QtWidgets.QDialog):
             self.userid.setText(creds["uid"])
             self.password.setText(creds["pwd"])
 
+        @pyqtSlot()
         def okaction(verify = False):
             UID = self.userid.text()
             if UID == '' or (self.password.text() == '' and not verify):
@@ -94,11 +95,13 @@ class ServerDialog(QtWidgets.QDialog):
         self.userid.setFocus()
         self.show()
 
+    @pyqtSlot()
     def success(self):
         QtWidgets.QMessageBox.information(self.parent(), "Success", 
             "Server Login successful." if not self.verify else \
             "Validating extra Pass.")
 
+    @pyqtSlot(int)
     def crash(self, response):
         QtWidgets.QMessageBox.critical(self.parent(), "Server Error!!", f"Unexpected server-side error occured when trying to Log in.\nResponse code: {response}")
         exit()

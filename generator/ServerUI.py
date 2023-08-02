@@ -1,7 +1,6 @@
 from PyQt5 import QtCore, QtWidgets, QtGui
 from PyQt5.QtCore import pyqtSlot
 from sys import exit
-from typing import Any
 import requests
 
 from srvrcfg import SERVERURL
@@ -21,8 +20,8 @@ class ServerThreadHandler(QtCore.QObject):
                                     json={"uid": UID,
                                           "password": PWD}).status_code
         except (requests.ConnectionError, requests.Timeout):
-            self.error.emit("Internet Error! Try Again.")
-            return
+            self.error.emit("Internet Error! Exiting.")
+            exit()
 
         if response == 200:
             self.success.emit()

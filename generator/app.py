@@ -66,7 +66,7 @@ if __name__ == "__main__":
     srvrhandler.moveToThread(srvrthread)
     srvrthread.started.connect(lambda: srvrhandler.login(*srvrdlg.getInputs()) \
                                      if preconfigured_login else srvrdlg.exec())
-    srvrthread.started.connect(lambda: win.setWindowTitle("KMIT Fest Pass Generator: Logging in")\
+    srvrthread.started.connect(lambda: win.setWindowTitle("KMIT College Pass Generator: Logging in")\
                                and win.setDisabled(True))
     srvrhandler.error.connect(srvrdlg.error)
     srvrhandler.success.connect(srvrdlg.success)
@@ -77,7 +77,7 @@ if __name__ == "__main__":
     srvrthread.finished.connect(srvrhandler.deleteLater)
     srvrthread.finished.connect(srvrthread.deleteLater)
     srvrhandler.success.connect(lambda: win.status.setText("Waiting for Data..."))
-    srvrhandler.success.connect(lambda: win.setWindowTitle("KMIT Fest Pass Generator"))
+    srvrhandler.success.connect(lambda: win.setWindowTitle("KMIT College Pass Generator"))
     srvrhandler.success.connect(lambda: win.setDisabled(False))
     srvrhandler.success.connect(saveCFG) 
     

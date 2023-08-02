@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Mentor Login</title>
+  <style>
+    body {
+      background-color: #f2f2f2;
+      font-family: Verdana, Geneva, Tahoma, sans-serif;
+      text-align: center;
+      padding: 20px;
+    }
+    .container {
+        max-width: 400px;
+        margin: 70px auto;
+        padding: 20px;
+        background-color: #ffffff;
+        box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.1);
+        border-radius: 8px;
+    }
+    .input-label {
+      font-weight: bold;
+      margin-bottom: 10px;
+    }
+    .text-input {
+      width: 100%;
+      padding: 10px;
+      border: 1px solid #ccc;
+      border-radius: 8px;
+      box-sizing: border-box;
+      margin-bottom: 20px;
+      font-size: 16px;
+    }
+    .submit-button {
+      background-color: #4CAF50;
+      color: white;
+      padding: 10px 20px;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 16px;
+    }
+    .submit-button:hover {
+      background-color: #45a049;
+    }
+    #errortext {
+      color: red;
+      display: none;
+    }
+
+  </style>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+<body>
+    <!-- <br>
+    <br>
+    <br> -->
+  <div class="container">
+    <h2>Mentor Login</h2>
+    <form action="" method="">
+      <input type="text" id="uid", name="uid", class="text-input" placeholder="Input UID..." required>
+      <!-- <label for="password" class="input-label">Password:</label> -->
+      <input type="password" id="password" name="password" class="text-input" placeholder="Input password..." required>
+      <p id="errortext"> </p>
+      <button type="submit" class="submit-button" >Submit</button>
+    </form>
+  </div>
+
+  <script>
+    function displayerror(error) {
+      errortext = document.getElementById("errortext");
+      errortext.innerinnerHTML = error;
+      error.style.display = "block";
+    }
+    document.querySelector(".submit-button").onclick = function() {
+      let uid = document.getElementById("uid").value
+      let password = document.getElementById("password").value
+      fetch(
+        "/api/login/mentors", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+            "uid": uid,
+            "password": password
+            })
+        }
+      ).then (resp => resp.json()).then(data => {
+        if (data["success"] == false) {
+          displayerror(data["msg"]);
+        }else {
+          window.location.href = "/scan";
+        }
+      })
+    }
+  </script>
+
+</body>
+</html>

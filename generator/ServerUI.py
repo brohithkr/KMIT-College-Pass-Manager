@@ -17,7 +17,7 @@ class ServerThreadHandler(QtCore.QObject):
         response = None
 
         try:
-            response = requests.get(f"{SERVERURL}/api/login/mentors",
+            response = requests.post(f"{SERVERURL}/api/login/mentors",
                                     json={"uid": UID,
                                           "password": PWD}).status_code
         except (requests.ConnectionError, requests.Timeout):

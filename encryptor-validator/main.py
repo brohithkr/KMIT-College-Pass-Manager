@@ -146,7 +146,7 @@ async def add_user(
     )
 
 
-@app.get("/api/login/{usertype}", status_code=200)
+@app.post("/api/login/{usertype}", status_code=200)
 async def is_valid_user(
     usertype: str, user: User, resp: Response
 ) -> Union[StatusResponse, Pass]:
@@ -274,7 +274,7 @@ def verify_sign(req: reqVer, resp: Response) -> Union[UnSignedData, StatusRespon
     return unsignedData
 
 
-@app.get("/api/get_scan_history")
+@app.post("/api/get_scan_history")
 def get_scan_history(req: reqMail, resp: Response) -> Union[History, StatusResponse]:
     conn = db.connect()
     is_val = (

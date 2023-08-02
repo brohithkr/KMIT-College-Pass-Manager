@@ -109,8 +109,8 @@ def filter_todays_history(hist):
     for i in hist[-2:]:
         li = json.loads(i)
         datestr = li[0]
-        print(datestr)
-        if (datetime.now() - datetime.strptime(datestr,"%d-%m-%Y %H:%M:%S")).days == 0:
+        print((datetime.now().day - datetime.strptime(datestr,"%d-%m-%Y %H:%M:%S")).day,"check")
+        if (datetime.now().day - datetime.strptime(datestr,"%d-%m-%Y %H:%M:%S")).day == 0:
             todays_hist.append(li)
     return todays_hist
 
@@ -189,6 +189,7 @@ async def issuepass(
     resp.headers["alreadyOwns"] = "false"
 
     if pass_data:
+        print(pass_data["passType"], reqpass.passType)
         if reqpass.passType != pass_data["passType"]:
             print(pass_data["passType"], reqpass.passType)
             return StatusResponse(
@@ -305,7 +306,7 @@ def audit_scan(req: reqMail, resp: Response) -> StatusResponse:
         pass_data = db.get_data(conn, "passes", req.rno)
         if pass_data["passType"] == "single-use":       
             db.set_data(conn, "expired_passes", req.rno, [pass_data["issueDate"]])
-            db.delete_data(conn, "scan_history", req.rno)
+            db.delete_data(conn, "passes", req.rno)
         return StatusResponse(success=False, msg="Already Scanned twice")
     db.set_data(
         conn,
@@ -316,8 +317,11 @@ def audit_scan(req: reqMail, resp: Response) -> StatusResponse:
     return StatusResponse(success=True, msg="Pass Scan Audited")
 
 @app.get("/login/verifiers")
-def loginPage(req: Request, resp: Response):
+def loginPage(req: Request):
     return templates.TemplateResponse("loginVer.html", {"request": req})
+
+# @app.get("/register/mentors")
+# def regpagementor()
 
 @app.get("/scan")
 def scan(req: Request):
@@ -330,7 +334,7 @@ def scan(req: Request):
     else:
         return RedirectResponse("/login/verifiers")
 
-    print(req.cookies)
+    # print(req.cookies)
 
     return templates.TemplateResponse("QRscanner.html", {"request": req})
 

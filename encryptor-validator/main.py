@@ -1,4 +1,6 @@
-from fastapi import FastAPI, Request, Header, Response, status
+from fastapi import FastAPI, Request, Header, Request, Response, status
+from fastapi.templating import Jinja2Templates
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 from typing import Annotated, Union, List
 import pyqrcode
@@ -6,8 +8,10 @@ from PassUtil import genPass
 import dbconnector as db
 from sendMail import sendMail
 from crypto import hashhex, signData, unsignData
+from qrscanner import scanQR
 from configparser import ConfigParser
 import os
+import json
 from datetime import datetime, date, timedelta
 from pytz import timezone
 
@@ -70,9 +74,12 @@ class reqVer(BaseModel):
 
 
 class History(BaseModel):
-    rno: str
     history: List
 
+class UnSignedData(BaseModel):
+    isValidSign: bool
+    rno: Union[str, None]
+    failure_reason: Union[str, None] = None
 
 class reqMail(BaseModel):
     uid: str
@@ -97,13 +104,21 @@ def is_val_user(conn, user_type, user: User):
 
 def filter_todays_history(hist):
     todays_hist = []
+    # print(hist[-2:],hist)
     for i in hist[-2:]:
-        if (datetime.now() - i.strptime("%d-%m-%Y %H:%M:%S")).days == 0:
-            today_hist.append(i)
+        li = json.loads(i)
+        datestr = li[0]
+        print(datestr)
+        if (datetime.now() - datetime.strptime(datestr,"%d-%m-%Y %H:%M:%S")).days == 0:
+            todays_hist.append(li)
     return todays_hist
 
 
 app = FastAPI()
+
+app.mount("/static", StaticFiles(directory="templates/static"), name="static")
+
+templates = Jinja2Templates(directory="templates")
 
 
 @app.post("/api/register/{usertype}")
@@ -229,9 +244,38 @@ async def send_mail(req: reqMail, resp: Response) -> StatusResponse:
         resp.status_code = status.HTTP_409_CONFLICT
     return StatusResponse(success=True, msg="email sent")
 
+@app.post("/api/verify_sign")
+def verify_sign(req: reqVer, resp: Response) -> Union[UnSignedData, StatusResponse]:
+    conn = db.connect()
+    if not is_val_user(conn, "verifiers", User(uid=req.uid, password=req.pwd))[1]:
+        resp.status_code = status.HTTP_401_UNAUTHORIZED
+        return StatusResponse(success=False, msg="Unauthorized Access")
 
-@app.post("/api/get_scan_history")
-def get_scan_history(req: reqVer, resp: Response) -> Union[History, StatusResponse]:
+    signed_data = scanQR(req.data)
+    # print(signed_data)
+    if signed_data == None:
+        return UnSignedData(isValidSign=False, rno=None, failure_reason="No QR Code Found")
+    if '@' not in signed_data:
+        return UnSignedData(isValidSign=False, rno=None, failure_reason="This QR Code is not a Pass")
+    
+    enrno, uid = signed_data.split('@')
+
+    pubkey = db.get_data(conn, "mentors", uid)['public_key']
+
+    unsignedData = UnSignedData(rno=None, isValidSign=False)
+    # print(enrno, pubkey) 
+    try:
+        unsignedData.rno = unsignData(enrno, pubkey)
+        unsignedData.isValidSign = True
+    except Exception as e:
+        print("error",e)
+        unsignedData = UnSignedData(rno=None, isValidSign=False, failure_reason="Invalid Signature")
+    
+    return unsignedData
+
+
+@app.get("/api/get_scan_history")
+def get_scan_history(req: reqMail, resp: Response) -> Union[History, StatusResponse]:
     conn = db.connect()
     is_val = (
         is_val_user(conn, "mentor", User(uid=req.uid, password=req.pwd))[1]
@@ -239,30 +283,39 @@ def get_scan_history(req: reqVer, resp: Response) -> Union[History, StatusRespon
     )
     if not is_val:
         return StatusResponse(success=False, msg="Invalid Credentials")
+    history = db.get_data(conn, "scan_history", req.rno)
+    today_history = filter_todays_history(history)
+    return History(history=today_history)
 
 
 @app.post("/api/audit_scan", status_code=200)
-def audit_scan(req: reqVer, resp: Response) -> StatusResponse:
+def audit_scan(req: reqMail, resp: Response) -> StatusResponse:
     conn = db.connect()
     is_val = (
-        is_val_user(conn, "mentor", User(uid=req.uid, password=req.pwd))[1]
-        or is_val_user(conn, "verifiers", User(uid=req.uid, password=req.pwd))[1]
+        is_val_user(conn, "verifiers", User(uid=req.uid, password=req.pwd))[1]
     )
     if not is_val:
         resp.status_code = status.HTTP_401_UNAUTHORIZED
         return StatusResponse(success=False, msg="Invalid Credentials")
     history = db.get_data(conn, "scan_history", req.rno)
     todays_history = filter_todays_history(history)
-    if len(todays_history) > 2:
+    if len(todays_history) >= 2:
         resp.status_code = status.HTTP_400_BAD_REQUEST
+        pass_data = db.get_data(conn, "passes", req.rno)
+        if pass_data["passType"] == "single-use":       
+            db.set_data(conn, "expired_passes", req.rno, [pass_data["issueDate"]])
+            db.delete_data(conn, "scan_history", req.rno)
         return StatusResponse(success=False, msg="Already Scanned twice")
     db.set_data(
         conn,
         "scan_history",
         req.rno,
-        [datetime.now(timezone("Asia/Kolkata")).strftime("%d-%m-%Y %H:%M:%S")],
+        [json.dumps([datetime.now(timezone("Asia/Kolkata")).strftime("%d-%m-%Y %H:%M:%S"), req.uid])],
     )
     return StatusResponse(success=True, msg="Pass Scan Audited")
+@app.get("/scan")
+def scan(req: Request):
+    return templates.TemplateResponse("QRscanner.html", {"request": req})
 
 
 # @app.post("/api/get_history")

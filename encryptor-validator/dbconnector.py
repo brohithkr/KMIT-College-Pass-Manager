@@ -83,7 +83,7 @@ def get_data(conn, table_name, primkey, key=None):
     if table_name in ["scan_history","expired_passes"]:
         res = []
         for i in range(conn.llen(f"userdata:{table_name}:{primkey}")):
-            res.append(conn.lindex(f"userdata:{table_name}:{primkey}",i))
+            res.append(conn.lindex(f"userdata:{table_name}:{primkey}",i).decode())
         return res
     if key is None:
         res = conn.hgetall(f"userdata:{table_name}:{primkey}")
@@ -93,6 +93,8 @@ def get_data(conn, table_name, primkey, key=None):
         res = conn.hget(f"userdata:{table_name}:{primkey}", key=key)
         return res
 
+def delete_data(conn, table_name, primkey):
+    conn.delete(f"userdata:{table_name}:{primkey}")
 
 def disconnect(conn):
     conn.close()

@@ -77,7 +77,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.actionSend.triggered.connect(lambda: self._preSend() if self.Send.isEnabled() else None)
 
     def _clear(self, level = None) -> None:
-        if level == None:
+        if level != True:
             self.PassType.setCurrentIndex(-1)
             self.Send.setDisabled(False)
             self.rno.clear()

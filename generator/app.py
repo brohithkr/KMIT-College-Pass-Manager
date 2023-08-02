@@ -79,7 +79,7 @@ if __name__ == "__main__":
     srvrhandler.success.connect(lambda: win.status.setText("Waiting for Data..."))
     srvrhandler.success.connect(lambda: win.setWindowTitle("KMIT College Pass Generator"))
     srvrhandler.success.connect(lambda: win.setDisabled(False))
-    srvrhandler.success.connect(saveCFG) 
+    srvrhandler.success.connect(saveCFG)
     
     srvrthread.start()
 

@@ -1,6 +1,7 @@
 from fastapi import FastAPI, Request, Header, Request, Response, status, Cookie
 from fastapi.templating import Jinja2Templates
 from fastapi.staticfiles import StaticFiles
+from fastapi.responses import HTMLResponse, RedirectResponse
 from pydantic import BaseModel
 from typing import Annotated, Union, List
 import pyqrcode
@@ -320,11 +321,16 @@ def loginPage(req: Request, resp: Response):
 
 @app.get("/scan")
 def scan(req: Request):
-    # uid = req.cookies.get("uid")
-    # pwd = req.cookies.get("pwd")
-    # conn = db.connect()
-    # if not is_val_user(conn, "verifiers", User(uid=uid, password=pwd))[1]:
-    #     return RedirectResponse("/login/verifiers")
+    uid = req.cookies.get("uid")
+    pwd = req.cookies.get("pwd")
+    conn = db.connect()
+    if None not in (uid,pwd):
+        if not is_val_user(conn, "verifiers", User(uid=uid, password=pwd))[1]:
+            return RedirectResponse("/login/verifiers")
+    else:
+        return RedirectResponse("/login/verifiers")
+
+    print(req.cookies)
 
     return templates.TemplateResponse("QRscanner.html", {"request": req})
 

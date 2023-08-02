@@ -45,7 +45,20 @@
     #errortext {
       color: red;
       display: none;
+      margin-bottom: 5px;
     }
+
+    /* .container> label {
+      display: inline-block;
+      width: 30%;
+      font-weight: bold;
+    }
+
+    .container> input {
+      display: inline-block;
+      width: 69%;
+
+    } */
 
   </style>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -55,38 +68,43 @@
     <br>
     <br> -->
   <div class="container">
-    <h3>Please your UID and Password</h2>
-    <form action="" method="">
+    <h3>Verifiers Login</h2>
+    <!-- <form > -->
       <input type="text" id="uid", name="uid", class="text-input" placeholder="Input UID..." required>
       <!-- <label for="password" class="input-label">Password:</label> -->
       <input type="password" id="password" name="password" class="text-input" placeholder="Input password..." required>
-      <p id="errortext"> </p>
+      <div id="errortext"> hrl</div>
       <button type="submit" class="submit-button" >Submit</button>
-    </form>
+    <!-- </form> -->
   </div>
 
   <script>
     function displayerror(error) {
       errortext = document.getElementById("errortext");
-      errortext.innerinnerHTML = error;
-      error.style.display = "block";
+      errortext.innerHTML = error;
+      errortext.style.display = "block";
     }
     document.querySelector(".submit-button").onclick = function() {
-      let uid = document.getElementById("uid").value
-      let password = document.getElementById("password").value
+      var uid = document.getElementById("uid").value
+      var password = document.getElementById("password").value
       fetch(
         "/api/login/verifiers", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json"},
         body: JSON.stringify({
             "uid": uid,
             "password": password
             })
         }
       ).then (resp => resp.json()).then(data => {
+        console.log(data);
         if (data["success"] == false) {
+          console.log(data["msg"])
           displayerror(data["msg"]);
         }else {
+          document.cookie = `uid=${uid}; path=/scan`;
+          document.cookie = `pwd=${password}; path=/scan`;
+          console.log(document.cookie)
           window.location.href = "/scan";
         }
       })

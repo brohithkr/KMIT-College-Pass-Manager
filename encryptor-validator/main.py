@@ -1,4 +1,4 @@
-from fastapi import FastAPI, Request, Header, Request, Response, status
+from fastapi import FastAPI, Request, Header, Request, Response, status, Cookie
 from fastapi.templating import Jinja2Templates
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
@@ -313,8 +313,19 @@ def audit_scan(req: reqMail, resp: Response) -> StatusResponse:
         [json.dumps([datetime.now(timezone("Asia/Kolkata")).strftime("%d-%m-%Y %H:%M:%S"), req.uid])],
     )
     return StatusResponse(success=True, msg="Pass Scan Audited")
+
+@app.get("/login/verifiers")
+def loginPage(req: Request, resp: Response):
+    return templates.TemplateResponse("loginVer.html", {"request": req})
+
 @app.get("/scan")
 def scan(req: Request):
+    uid = req.cookies.get("uid")
+    pwd = req.cookies.get("pwd")
+    conn = db.connect()
+    if not is_val_user(conn, "verifiers", User(uid=uid, password=pwd))[1]:
+        return RedirectResponse("/login/verifiers")
+
     return templates.TemplateResponse("QRscanner.html", {"request": req})
 
 

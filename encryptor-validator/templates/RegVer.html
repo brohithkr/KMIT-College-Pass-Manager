@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Mentor Registration</title>
+  <title>Verifier Registration</title>
   <style>
     body {
       background-color: #f2f2f2;
@@ -45,6 +45,7 @@
     #errortext {
       color: red;
       display: none;
+      margin-bottom: 10px;
     }
 
   </style>
@@ -56,30 +57,32 @@
     <br> -->
   <div class="container">
     <h2>Verifier registration</h2>
-    <form action="" method="">
-      <input type="text" id="name" name="name" class="text-input" placeholder="Verifier's Name..." required>
+    <!-- <form action="" method=""> -->
+      <input type="text" id="name" name="verifiers's name" class="text-input" placeholder="Verifier's Name..." required>
       <input type="text" id="uid", name="uid", class="text-input" placeholder="Input UID..." required>
       <!-- <label for="password" class="input-label">Password:</label> -->
+      <!-- <input type="text" id="section" name="section" class="text-input" placeholder="Class-Section ( Format: CSE-A)..." required> -->
       <input type="password" id="password" name="password" class="text-input" placeholder="Input Password..." required>
-      <p id="errortext"> </p>
+      <div id="errortext"> </div>
       <button type="submit" class="submit-button" >Submit</button>
-    </form>
+    <!-- </form> -->
   </div>
 
   <script>
     function displayerror(error) {
       errortext = document.getElementById("errortext");
-      errortext.innerinnerHTML = error;
-      error.style.display = "block";
+      errortext.innerHTML = error;
+      errortext.style.display = "block";
     }
     document.querySelector(".submit-button").onclick = function() {
       let name = document.getElementById("name").value
       let uid = document.getElementById("uid").value
       let password = document.getElementById("password").value
+      // let key = document.cookie.split("=")[1]
       fetch(
         "/api/register/verifiers", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", "key":"kmit123$" },
         body: JSON.stringify({
             "name": name,
             "uid": uid,
@@ -90,7 +93,8 @@
         if (data["success"] == false) {
           displayerror(data["msg"]);
         }else {
-          window.location.href = "/scan";
+          window.location.href = "/display_affirm?success=true&msg=Registration Successful";
+          console.log(data)
         }
       })
     }

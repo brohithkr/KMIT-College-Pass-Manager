@@ -163,8 +163,8 @@ document.querySelector("#snap").onclick =  function() {
     document.querySelector(".loadmodal").style.display = "block";
     var imageBase64 = captureSnapshot().replace("data:image/png;base64,", "");
     document.getElementById("errortext").style.display = "none";
-    // let [uid, pwd] = getcredentials();
-    [uid, pwd] = ["bobsmith", "password456"]
+    let [uid, pwd] = getcredentials();
+    // [uid, pwd] = ["bobsmith", "password456"]
     console.log(uid,pwd);
     // console.log(imageBase64);
     all_tasks(uid,pwd,imageBase64).then(

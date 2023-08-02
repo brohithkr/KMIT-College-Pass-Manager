@@ -320,8 +320,27 @@ def audit_scan(req: reqMail, resp: Response) -> StatusResponse:
 def loginPage(req: Request):
     return templates.TemplateResponse("loginVer.html", {"request": req})
 
-# @app.get("/register/mentors")
-# def regpagementor()
+@app.get("/register/mentors")
+def regPageMen(req: Request, resp: Response, key: str = "None"):
+    if hashhex(key) != HKEY:
+        return RedirectResponse("/display_affirm?success=False&msg=Unauthorized Access")
+    # resp.set_cookie("pwd", value=key)
+    return templates.TemplateResponse("RegMen.html", {"request": req})
+
+@app.get("/register/verifiers")
+def regPageVer(req: Request, key: str = "None"):
+    if hashhex(key) != HKEY:
+        return RedirectResponse("/display_affirm?success=False&msg=Unauthorized Access")
+    return templates.TemplateResponse("RegVer.html", {"request": req})
+
+@app.get("/pass_validate")
+def pass_validation(pwd: str):
+    if hashhex(pwd) != HKEY:
+        return {"isValid": False, "message": "Invalid Password"}
+    else:
+        return {"isValid": True, "message": "Valid Password"}
+
+
 
 @app.get("/scan")
 def scan(req: Request):
@@ -334,75 +353,17 @@ def scan(req: Request):
     else:
         return RedirectResponse("/login/verifiers")
 
-    # print(req.cookies)
-
     return templates.TemplateResponse("QRscanner.html", {"request": req})
 
 
-# @app.post("/api/get_history")
-# def get_history(reqVer: reqVerification) -> Union[List,StatusResponse]:
-#     verifier_data = db.get_data(conn, "verifiers", reqVer.uid)
-#     if not verifier_data:
-#         return StatusResponse(success=False, msg="Invalid verifier UID")
-#     elif verifier_data["password"] != hashhex(reqVer.pwd):
-#         return StatusResponse(success=False, msg="Invalid verifier password")
-#     sign, uid = signed_data.split("@")
-#     conn = db.connect()
-#     mentor_key = db.get_data(conn, "mentors", uid)["public_key"]
-#     rno = None
-#     try:
-#         rno = unsignData(sign, mentor_key)
-#     except:
-#         return StatusResponse(success=False, msg="Invalid Signature")
+@app.get("/display_affirm")
+def display_affirm(req: Request, success: bool, msg: str):
+    return templates.TemplateResponse("passaffirmation.html", {"request": req, "isValid": success, "message": msg})
 
-#     pass_details = db.get_data(conn, "passes", rno)
-#     history = db.get_data(conn, "scan_history", rno)
+# @app.get("/")
+# def home(req: Request):
+#     return templates.TemplateResponse("index.html", {"request": req})
 
-#     history_today = None
-
-#     if not pass_details:
-#         return StatusResponse(success=False, msg="Not Active Pass")
-
-#     if pass_details["passType"] == "daily":
-#         pass_issue_date = datetime.strptime(
-#             pass_details["issueDate"], "%d-%m-%Y"
-#         ).date()
-#         if date.today() - datetime.strptime(
-#             pass_details["issueDate"], "%d-%m-%Y"
-#         ).date() > timedelta(days=1):
-#             return StatusResponse(success=False, msg="Pass Expired")
-#         history_today = []
-#         for i in history[-2:]:
-#             idate = datetime.strptime(i, "%d-%m-%Y %H:%M:%S")
-#             today = datetime.now(timezone("Asia/Kolkata"))
-#             if (today - idate).days == 0:
-#                 history_today.append(i)
-#         # if len(history_today) >= 2:
-#         #     return history_today
-#     if pass_details["passType"] == "single-use":
-#         if len(history) >= 2:
-#             set_data(conn, "expired_passes", rno, pass_details)
-#             return history
-
-#     # if
-
-#     db.set_data(
-#         conn,
-#         "scan_history",
-#         rno,
-#         [datetime.now(timezone("Asia/Kolkata")).strftime("%d-%m-%Y %H:%M:%S")],
-#     )
-
-
-#     return history
-
-# if not student_data:
-#     return StatusResponse(success=False, msg="Insuffitient data")
-# mentor_data = db.get_data(conn, "mentors", uid)
-
-# if not unsignData(rno, signed_data, mentor_data["public_key"]):
-#     return StatusResponse(success=False, msg="Invalid Pass")
-# return StatusResponse(success=True, msg="Pass Verified")
 
 
 @app.head("/wake_up")

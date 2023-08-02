@@ -27,7 +27,7 @@ def fetchQR(rno, passtype) -> str:
             "rno": rno,
             "passType": passtype
         })
-    # print(response.content)
+    print(response.content)
     passqr_data = response.json()
     return passqr_data
 

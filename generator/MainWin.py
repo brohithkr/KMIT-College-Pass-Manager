@@ -76,14 +76,15 @@ class MainWindow(QtWidgets.QMainWindow):
         self.Reason.returnPressed.connect(self.actionSend.trigger)
         self.actionSend.triggered.connect(lambda: self._preSend() if self.Send.isEnabled() else None)
 
-    def _clear(self, clearPass = True) -> None:
-        self.PassType.setCurrentIndex(-1)
-        self.Send.setDisabled(False)
-        self.rno.clear()
-        self.Reason.clear()
-        self.status.setText("Waiting for data...")
-        self.rno.setFocus()
-        if clearPass: self._SetPASSimg(None)
+    def _clear(self, level = None) -> None:
+        if level == None:
+            self.PassType.setCurrentIndex(-1)
+            self.Send.setDisabled(False)
+            self.rno.clear()
+            self.Reason.clear()
+            self.status.setText("Waiting for data...")
+            self.rno.setFocus()
+        if level != False: self._SetPASSimg(None)
 
     def resetThreads(self):
         self.thread = None
@@ -93,12 +94,12 @@ class MainWindow(QtWidgets.QMainWindow):
         self.UID, self.PWD = UID, PWD
 
     def _preSend(self):
-        self._clear()
+        self._clear(True)
         self.status.setText("Processing data...")
         self.Send.setDisabled(True)
         rno, reason = self.rno.text(), self.Reason.text()
 
-        if rno == '' or (reason == '' and self.PassType.currentIndex != 1):
+        if rno == '' or (reason == '' and self.PassType.currentIndex == 0):
             QtWidgets.QMessageBox.information(self, "Empty Data", "Please fill out all the fields")
             self.Send.setDisabled(False)
             return
@@ -122,6 +123,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.thread.started.connect(self.sender.run)
         self.sender.status.connect(self._setStatus)
         self.sender.generatedPass.connect(self._SetPASSimg)
+        self.sender.error.connect(self.error)
         self.sender.mailRes.connect(self._mailResHandler)
         self.sender.finished.connect(self.thread.quit)
         self.thread.finished.connect(self.thread.deleteLater)
@@ -139,6 +141,11 @@ class MainWindow(QtWidgets.QMainWindow):
         elif status == 200:
             QtWidgets.QMessageBox.information(self, "Success!", "E-Mail Sent successfully.")
             self._clear()
+
+    @pyqtSlot(str)
+    def error(self, err):
+        QtWidgets.QMessageBox.critical(self, "Error!", err)
+        self._clear()
 
     @pyqtSlot(str)
     def _setStatus(self, status):

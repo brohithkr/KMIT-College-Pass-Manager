@@ -320,11 +320,11 @@ def loginPage(req: Request, resp: Response):
 
 @app.get("/scan")
 def scan(req: Request):
-    uid = req.cookies.get("uid")
-    pwd = req.cookies.get("pwd")
-    conn = db.connect()
-    if not is_val_user(conn, "verifiers", User(uid=uid, password=pwd))[1]:
-        return RedirectResponse("/login/verifiers")
+    # uid = req.cookies.get("uid")
+    # pwd = req.cookies.get("pwd")
+    # conn = db.connect()
+    # if not is_val_user(conn, "verifiers", User(uid=uid, password=pwd))[1]:
+    #     return RedirectResponse("/login/verifiers")
 
     return templates.TemplateResponse("QRscanner.html", {"request": req})
 

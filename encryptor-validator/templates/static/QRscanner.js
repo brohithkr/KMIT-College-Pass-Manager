@@ -78,7 +78,7 @@ function displayPopup(isValid, message, history) {
         document.querySelector(".tickmark").innerHTML = crosssvg;
     }
     for(let i=0; i< history.length; i++){
-        let htmlstr = "<li>" + history[i][0] - history[i][1] + "</li>";
+        let htmlstr = "<li>" + history[i][0] + "-" +  history[i][1] + "</li>";
         document.querySelector(".history-list").innerHTML += htmlstr;
     }
     messagebox.innerHTML = message;
@@ -163,7 +163,7 @@ document.querySelector("#snap").onclick =  function() {
     document.querySelector(".loadmodal").style.display = "block";
     var imageBase64 = captureSnapshot().replace("data:image/png;base64,", "");
     document.getElementById("errortext").style.display = "none";
-    let [uid, pwd] = getcredentials();
+    // let [uid, pwd] = getcredentials();
     [uid, pwd] = ["bobsmith", "password456"]
     console.log(uid,pwd);
     // console.log(imageBase64);

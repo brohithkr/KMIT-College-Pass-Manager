@@ -109,8 +109,8 @@ def filter_todays_history(hist):
     for i in hist[-2:]:
         li = json.loads(i)
         datestr = li[0]
-        print((datetime.now().day - datetime.strptime(datestr,"%d-%m-%Y %H:%M:%S")).day,"check")
-        if (datetime.now().day - datetime.strptime(datestr,"%d-%m-%Y %H:%M:%S")).day == 0:
+        print((datetime.now().day - datetime.strptime(datestr,"%d-%m-%Y %H:%M:%S").day),"check")
+        if (datetime.now().day - datetime.strptime(datestr,"%d-%m-%Y %H:%M:%S").day) == 0:
             todays_hist.append(li)
     return todays_hist
 
@@ -304,7 +304,7 @@ def audit_scan(req: reqMail, resp: Response) -> StatusResponse:
     if len(todays_history) >= 2:
         resp.status_code = status.HTTP_400_BAD_REQUEST
         pass_data = db.get_data(conn, "passes", req.rno)
-        if pass_data["passType"] == "single-use":       
+        if pass_data["passType"] == "single-use":
             db.set_data(conn, "expired_passes", req.rno, [pass_data["issueDate"]])
             db.delete_data(conn, "passes", req.rno)
         return StatusResponse(success=False, msg="Already Scanned twice")

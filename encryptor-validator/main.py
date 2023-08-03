@@ -365,6 +365,11 @@ def display_affirm(req: Request, success: bool, msg: str):
 #     return templates.TemplateResponse("index.html", {"request": req})
 
 
+@app.get("/")
+def mainPage(req: Request):
+    return templates.TemplateResponse("index.html", {"request": req})
+
+
 
 @app.head("/wake_up")
 def wake_up():

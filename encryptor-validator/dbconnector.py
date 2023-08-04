@@ -71,6 +71,7 @@ def add_verifiers(conn, verifierDict):
     conn.hset(f"userdata:verifiers:{uid}",mapping=verifierDict)
 
 def set_data(conn,table_name,primkey,data):
+    print(data)
     if type(data) == dict:
         rno = data[primkey]
         del data[primkey]
@@ -114,7 +115,7 @@ if __name__=="__main__":
         "section": "CSE-A"
     })
 
-    d = get_data(conn, "mentors", "johndoe", )
+    d = get_data(conn, "mentors", "johndoe")
     print(d)
     conn.close()
 

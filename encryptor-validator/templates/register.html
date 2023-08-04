@@ -70,7 +70,6 @@
   <script>
     var usertype = "{{userType}}";
     usertype = usertype.toLowerCase() + "s";
-    usertype = usertype.toLowerCase() + "s";
     function displayerror(error) {
       errortext = document.getElementById("errortext");
       errortext.innerHTML = error;
@@ -85,7 +84,7 @@
         "uid": uid,
         "password": password
       }
-      if (usertype = "mentors") {
+      if (usertype == "mentors") {
         requestObj["section"] = document.getElementById("section").value
       }
       fetch(

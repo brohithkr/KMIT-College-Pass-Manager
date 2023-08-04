@@ -1,7 +1,7 @@
 from fastapi import FastAPI, Request, Header, Request, Response, status, Cookie
 from fastapi.templating import Jinja2Templates
 from fastapi.staticfiles import StaticFiles
-from fastapi.responses import HTMLResponse, RedirectResponse
+from fastapi.responses import HTMLResponse, RedirectResponse, FileResponse
 from pydantic import BaseModel
 from typing import Annotated, Union, List
 import pyqrcode
@@ -230,8 +230,9 @@ async def issuepass(
 
     if fullimage:
         resPass.b64qr = genPass(resPass.dict(), reqpass.passType).decode()
-
-    return resPass.dict().update("alreadyOwns", alreadyOwns)
+    
+    resp.headers["alreadyOwns"] = "false"
+    return resPass.dict()
 
 
 @app.post("/sendMail")
@@ -264,6 +265,7 @@ def verify_sign(req: reqVer, resp: Response) -> Union[UnSignedData, StatusRespon
     signed_data = scanQR(req.data)
     # print(signed_data)
     if signed_data == None:
+        # resp.status_code = status.HTTP_204_NO_CONTENT
         return UnSignedData(
             isValidSign=False, rno=None, failure_reason="No QR Code Found"
         )
@@ -316,6 +318,9 @@ def audit_scan(req: reqMail, resp: Response) -> StatusResponse:
     if len(todays_history) >= 2:
         resp.status_code = status.HTTP_400_BAD_REQUEST
         pass_data = db.get_data(conn, "passes", req.rno)
+        if not pass_data:
+            resp.status_code = status.HTTP_400_BAD_REQUEST
+            return StatusResponse(success=False, msg="Pass has Expired")
         if pass_data["passType"] == "single-use":
             db.set_data(conn, "expired_passes", req.rno, [pass_data["issueDate"]])
             db.delete_data(conn, "passes", req.rno)
@@ -340,7 +345,7 @@ def audit_scan(req: reqMail, resp: Response) -> StatusResponse:
 
 @app.get("/login/{userType}")
 def loginPage(req: Request, userType: str):
-    print(userType)
+    # print(userType)
     return templates.TemplateResponse(
         "login.html", {"request": req, "userType": userType.capitalize()[:-1]}
     )
@@ -351,19 +356,19 @@ def register(req: Request, userType: str):
         "register.html", {"request": req, "userType": userType.capitalize()[:-1]}
     )
 
-@app.get("/register/mentors")
-def regPageMen(req: Request, resp: Response, key: str = "None"):
-    if hashhex(key) != HKEY:
-        return RedirectResponse("/display_affirm?success=False&msg=Unauthorized Access")
-    # resp.set_cookie("pwd", value=key)
-    return templates.TemplateResponse("RegMen.html", {"request": req})
+# @app.get("/register/mentors")
+# def regPageMen(req: Request, resp: Response, key: str = "None"):
+#     if hashhex(key) != HKEY:
+#         return RedirectResponse("/display_affirm?success=False&msg=Unauthorized Access")
+#     # resp.set_cookie("pwd", value=key)
+#     return templates.TemplateResponse("RegMen.html", {"request": req})
 
 
-@app.get("/register/verifiers")
-def regPageVer(req: Request, key: str = "None"):
-    if hashhex(key) != HKEY:
-        return RedirectResponse("/display_affirm?success=False&msg=Unauthorized Access")
-    return templates.TemplateResponse("RegVer.html", {"request": req})
+# @app.get("/register/verifiers")
+# def regPageVer(req: Request, key: str = "None"):
+#     if hashhex(key) != HKEY:
+#         return RedirectResponse("/display_affirm?success=False&msg=Unauthorized Access")
+#     return templates.TemplateResponse("RegVer.html", {"request": req})
 
 class reqval(BaseModel):
     pwd: str
@@ -383,11 +388,10 @@ def scan(req: Request):
     uid = req.cookies.get("uid")
     pwd = req.cookies.get("pwd")
     conn = db.connect()
-    if None not in (uid, pwd):
-        if not is_val_user(conn, "verifiers", User(uid=uid, password=pwd))[1]:
-            return RedirectResponse("/login/verifiers")
-    else:
+    # print(uid, pwd)
+    if not is_val_user(conn, "verifiers", User(uid=str(uid), password=str(pwd)))[1]:
         return RedirectResponse("/login/verifiers")
+    
 
     return templates.TemplateResponse("QRscanner.html", {"request": req})
 
@@ -431,6 +435,11 @@ def adminPanel(req: Request):
         "pathOptions.html", {"request": req, "title": title, "heading": title, "paths": paths}
     )
 
+
+@app.get("/favicon.ico")
+def serve_icon():
+    return FileResponse(os.path.join(app.root_path,"templates","static","QRicon2.png"), media_type="image/png")
+    # return {"root":app.root_path}
 
 @app.head("/wake_up")
 def wake_up():

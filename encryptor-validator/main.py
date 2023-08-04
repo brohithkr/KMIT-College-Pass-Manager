@@ -247,11 +247,16 @@ async def send_mail(req: reqMail, resp: Response) -> StatusResponse:
     pass_details["rno"] = req.rno
     b64img = genPass(pass_details, pass_details["passType"])
 
+    if student_data["email"] == "":
+        resp.status_code = status.HTTP_400_BAD_REQUEST
+        return StatusResponse(success=False, msg="Student email not available.")
+
     res = sendMail(
         student_data["name"], student_data["email"], b64img, pass_details["passType"]
     )
     if not res:
         resp.status_code = status.HTTP_409_CONFLICT
+        return StatusResponse(success=False, msg="Unexpected Error")
     return StatusResponse(success=True, msg="email sent")
 
 

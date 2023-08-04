@@ -45,7 +45,7 @@ class MainWindow(QtWidgets.QMainWindow):
         else:
             PASSimg = QtGui.QImage.fromData(b64d(img), 'PNG')
             PASSimgbox = QtWidgets.QGraphicsPixmapItem()
-            PASSimgbox.setPixmap(QtGui.QPixmap.fromImage(PASSimg).scaled(400, 300))
+            PASSimgbox.setPixmap(QtGui.QPixmap.fromImage(PASSimg).scaled(480, 360))
             passScene.addItem(PASSimgbox)
         self.Pass.setScene(passScene)
         self.Pass.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)

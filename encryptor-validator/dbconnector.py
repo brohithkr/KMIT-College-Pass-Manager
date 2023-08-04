@@ -37,11 +37,17 @@ def decode_dict(d):
 def connect():
     conn = None
     try:
-        conn = redis.Redis(
-            host=URL,
-            port=PORT,
-            password=PASSWORD
-        )
+        if PASSWORD=="None":
+            conn = redis.Redis(
+                host=URL,
+                port=PORT,
+            )
+        else:
+            conn = redis.Redis(
+                host=URL,
+                port=PORT,
+                password=PASSWORD
+            )
     except:
         Exception("Trouble connecting to database")
     return conn
@@ -110,6 +116,7 @@ if __name__=="__main__":
 
     d = get_data(conn, "mentors", "johndoe", )
     print(d)
+    conn.close()
 
     # r = redis.Redis(
     #     host="rediss://red-cj197btph6enmk10ro6g:6S2fDrVDrNHMUJH4oHaixPNfO8yQAkLV@singapore-redis.render.com:6379",

@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>{{userType}} Login</title>
+  <title>{{userType}} Registration</title>
   <style>
     body {
       background-color: #f2f2f2;
@@ -45,6 +45,7 @@
     #errortext {
       color: red;
       display: none;
+      margin-bottom: 10px;
     }
 
   </style>
@@ -55,43 +56,50 @@
     <br>
     <br> -->
   <div class="container">
-    <h2>{{userType}} Login</h2>
-    <form action="" method="">
+    <h2>{{userType}} registration</h2>
+      <input type="text" id="name" name="verifiers's name" class="text-input" placeholder="Verifier's Name..." required>
       <input type="text" id="uid", name="uid", class="text-input" placeholder="Input UID..." required>
-      <!-- <label for="password" class="input-label">Password:</label> -->
-      <input type="password" id="password" name="password" class="text-input" placeholder="Input password..." required>
-      <p id="errortext"> </p>
+      {% if userType=="Mentor" %}
+      <input type="text" id="section" name="section" class="text-input" placeholder="Class-Section ( Format: CSE-A)..." required>
+      {% endif %}
+      <input type="password" id="password" name="password" class="text-input" placeholder="Input Password..." required>
+      <div id="errortext"> </div>
       <button type="submit" class="submit-button" >Submit</button>
-    </form>
   </div>
 
   <script>
     var usertype = "{{userType}}";
-    console.log(usertype);
-    console.log("hello")
+    usertype = usertype.toLowerCase() + "s";
     usertype = usertype.toLowerCase() + "s";
     function displayerror(error) {
       errortext = document.getElementById("errortext");
-      errortext.innerinnerHTML = error;
-      error.style.display = "block";
+      errortext.innerHTML = error;
+      errortext.style.display = "block";
     }
     document.querySelector(".submit-button").onclick = function() {
+      let name = document.getElementById("name").value
       let uid = document.getElementById("uid").value
       let password = document.getElementById("password").value
+      requestObj = {
+        "name": name,
+        "uid": uid,
+        "password": password
+      }
+      if (usertype = "mentors") {
+        requestObj["section"] = document.getElementById("section").value
+      }
       fetch(
-        `/api/login/${usertype}`, {
+        `/api/register/${usertype}`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-            "uid": uid,
-            "password": password
-            })
+        headers: { "Content-Type": "application/json", "key":"kmit123$" },
+        body: JSON.stringify(requestObj)
         }
       ).then (resp => resp.json()).then(data => {
         if (data["success"] == false) {
           displayerror(data["msg"]);
         }else {
-          window.location.href = "/scan";
+          window.location.href = "/display_affirm?success=true&msg=Registration Successful";
+          console.log(data)
         }
       })
     }

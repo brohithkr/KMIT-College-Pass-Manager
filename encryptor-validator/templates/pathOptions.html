@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>KMIT Pass Generation</title>
+  <title>{{title}}</title>
   <style>
     body {
       background-color: #f2f2f2;
@@ -30,15 +30,22 @@
       margin-bottom: 20px;
       font-size: 16px;
     }
+    .link-button:hover{
+      background-color: #8be5a1;
+      cursor: pointer;
+    }
   </style>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
 </head>
 <body>
-    <h1>Digital Pass Generation System</h1>
+    <h1>{{heading}}</h1>
     <div class="container">
-            <button class="link-button" onclick="window.location.href='/adminpanel';">Admin Panel</button><br>
-            <button class="link-button" onclick="window.location.href='/login/verifier';">Verifier Login</button><br>
-            <button class="link-button" onclick="window.location.href='/login/mentor';">Mentor Login</button>
+            <!-- <button class="link-button" onclick="window.location.href='/adminpanel';">Admin Panel</button><br> -->
+            <!-- <button class="link-button" onclick="window.location.href='/login/verifier';">Verifier Login</button><br> -->
+            <!-- <button class="link-button" onclick="window.location.href='/login/mentor';">Mentor Login</button> -->
+            {% for i in paths %}
+              <button class="link-button" onclick="window.location.href='{{i[0]}}';">{{i[1]}}</button>
+            {% endfor %}
     </div>
 </body>
 </html>

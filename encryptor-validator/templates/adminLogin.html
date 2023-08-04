@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>{{userType}} Login</title>
+  <title>Admin Login</title>
   <style>
     body {
       background-color: #f2f2f2;
@@ -42,10 +42,6 @@
     .submit-button:hover {
       background-color: #45a049;
     }
-    #errortext {
-      color: red;
-      display: none;
-    }
 
   </style>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -55,47 +51,46 @@
     <br>
     <br> -->
   <div class="container">
-    <h2>{{userType}} Login</h2>
-    <form action="" method="">
-      <input type="text" id="uid", name="uid", class="text-input" placeholder="Input UID..." required>
+    <h3>Admin Login</h2>
       <!-- <label for="password" class="input-label">Password:</label> -->
       <input type="password" id="password" name="password" class="text-input" placeholder="Input password..." required>
-      <p id="errortext"> </p>
-      <button type="submit" class="submit-button" >Submit</button>
-    </form>
+      <br><p id="test"></p>
+      <input type="submit" class="submit-button" />
   </div>
-
   <script>
-    var usertype = "{{userType}}";
-    console.log(usertype);
-    console.log("hello")
-    usertype = usertype.toLowerCase() + "s";
-    function displayerror(error) {
-      errortext = document.getElementById("errortext");
-      errortext.innerinnerHTML = error;
-      error.style.display = "block";
-    }
-    document.querySelector(".submit-button").onclick = function() {
-      let uid = document.getElementById("uid").value
-      let password = document.getElementById("password").value
-      fetch(
-        `/api/login/${usertype}`, {
+    var password = document.getElementById("password");
+    function task() {
+      pwd = password.value
+      // console.log(pwd)
+      fetch("/pass_validate",{
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json"},
         body: JSON.stringify({
-            "uid": uid,
-            "password": password
-            })
-        }
-      ).then (resp => resp.json()).then(data => {
-        if (data["success"] == false) {
-          displayerror(data["msg"]);
-        }else {
-          window.location.href = "/scan";
+          "pwd": pwd
+        })
+      }).then(resp => resp.json()).then(data => {
+        // console.log(data)
+        if (data["isValid"] == true) {
+          document.cookie = `pwd=${pwd}; path=/register/verifiers;`;
+          document.cookie = `pwd=${pwd}; path=/register/mentors;`;
+          document.cookie = `pwd=${pwd}; path=/adminpanel;`;
+          // document.getElementById("test").innerHTML = "Success" + JSON.stringify(data)
+          document.location.href = "/adminpanel";
+        } else {
+          // document.getElementById("test").innerHTML = "Failure" + JSON.stringify(data)
+          document.location.href = "/display_affirm?success=False&msg=Unauthorized Access";
+          // console.log(data)
         }
       })
     }
+    password.addEventListener("keyup", function (event) {
+        if (event.keyCode === 13) {
+          event.preventDefault();
+          document.querySelector(".submit-button").click();
+        }
+      }
+    )
+    document.querySelector(".submit-button").addEventListener("click", task)
   </script>
-
 </body>
 </html>

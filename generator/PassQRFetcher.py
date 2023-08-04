@@ -23,7 +23,7 @@ class PassFetcher(QtCore.QObject):
         self.status.emit("Fetch QR code...")
         qr_data = fetchQR(self.rno, self.passType)
 
-        print(qr_data)
+        # print(qr_data)
         if qr_data.get("success") == False:
             self.error.emit(qr_data.get("msg"))
             return False

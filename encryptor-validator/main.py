@@ -1,7 +1,7 @@
 from fastapi import FastAPI, Request, Header, Request, Response, status, Cookie
 from fastapi.templating import Jinja2Templates
 from fastapi.staticfiles import StaticFiles
-from fastapi.responses import HTMLResponse, RedirectResponse
+from fastapi.responses import HTMLResponse, RedirectResponse, FileResponse
 from pydantic import BaseModel
 from typing import Annotated, Union, List
 import pyqrcode
@@ -77,10 +77,12 @@ class reqVer(BaseModel):
 class History(BaseModel):
     history: List
 
+
 class UnSignedData(BaseModel):
     isValidSign: bool
     rno: Union[str, None]
     failure_reason: Union[str, None] = None
+
 
 class reqMail(BaseModel):
     uid: str
@@ -109,8 +111,13 @@ def filter_todays_history(hist):
     for i in hist[-2:]:
         li = json.loads(i)
         datestr = li[0]
-        print((datetime.now().day - datetime.strptime(datestr,"%d-%m-%Y %H:%M:%S").day),"check")
-        if (datetime.now().day - datetime.strptime(datestr,"%d-%m-%Y %H:%M:%S").day) == 0:
+        print(
+            (datetime.now().day - datetime.strptime(datestr, "%d-%m-%Y %H:%M:%S").day),
+            "check",
+        )
+        if (
+            datetime.now().day - datetime.strptime(datestr, "%d-%m-%Y %H:%M:%S").day
+        ) == 0:
             todays_hist.append(li)
     return todays_hist
 
@@ -223,8 +230,9 @@ async def issuepass(
 
     if fullimage:
         resPass.b64qr = genPass(resPass.dict(), reqpass.passType).decode()
-
-    return resPass.dict().update("alreadyOwns", alreadyOwns)
+    
+    resp.headers["alreadyOwns"] = "false"
+    return resPass.dict()
 
 
 @app.post("/sendMail")
@@ -239,12 +247,18 @@ async def send_mail(req: reqMail, resp: Response) -> StatusResponse:
     pass_details["rno"] = req.rno
     b64img = genPass(pass_details, pass_details["passType"])
 
+    if student_data["email"] == "":
+        resp.status_code = status.HTTP_400_BAD_REQUEST
+        return StatusResponse(success=False, msg="Student email not available.")
+
     res = sendMail(
         student_data["name"], student_data["email"], b64img, pass_details["passType"]
     )
     if not res:
         resp.status_code = status.HTTP_409_CONFLICT
+        return StatusResponse(success=False, msg="Unexpected Error")
     return StatusResponse(success=True, msg="email sent")
+
 
 @app.post("/api/verify_sign")
 def verify_sign(req: reqVer, resp: Response) -> Union[UnSignedData, StatusResponse]:
@@ -256,23 +270,30 @@ def verify_sign(req: reqVer, resp: Response) -> Union[UnSignedData, StatusRespon
     signed_data = scanQR(req.data)
     # print(signed_data)
     if signed_data == None:
-        return UnSignedData(isValidSign=False, rno=None, failure_reason="No QR Code Found")
-    if '@' not in signed_data:
-        return UnSignedData(isValidSign=False, rno=None, failure_reason="This QR Code is not a Pass")
-    
-    enrno, uid = signed_data.split('@')
+        # resp.status_code = status.HTTP_204_NO_CONTENT
+        return UnSignedData(
+            isValidSign=False, rno=None, failure_reason="No QR Code Found"
+        )
+    if "@" not in signed_data:
+        return UnSignedData(
+            isValidSign=False, rno=None, failure_reason="This QR Code is not a Pass"
+        )
 
-    pubkey = db.get_data(conn, "mentors", uid)['public_key']
+    enrno, uid = signed_data.split("@")
+
+    pubkey = db.get_data(conn, "mentors", uid)["public_key"]
 
     unsignedData = UnSignedData(rno=None, isValidSign=False)
-    # print(enrno, pubkey) 
+    # print(enrno, pubkey)
     try:
         unsignedData.rno = unsignData(enrno, pubkey)
         unsignedData.isValidSign = True
     except Exception as e:
-        print("error",e)
-        unsignedData = UnSignedData(rno=None, isValidSign=False, failure_reason="Invalid Signature")
-    
+        print("error", e)
+        unsignedData = UnSignedData(
+            rno=None, isValidSign=False, failure_reason="Invalid Signature"
+        )
+
     return unsignedData
 
 
@@ -293,9 +314,7 @@ def get_scan_history(req: reqMail, resp: Response) -> Union[History, StatusRespo
 @app.post("/api/audit_scan", status_code=200)
 def audit_scan(req: reqMail, resp: Response) -> StatusResponse:
     conn = db.connect()
-    is_val = (
-        is_val_user(conn, "verifiers", User(uid=req.uid, password=req.pwd))[1]
-    )
+    is_val = is_val_user(conn, "verifiers", User(uid=req.uid, password=req.pwd))[1]
     if not is_val:
         resp.status_code = status.HTTP_401_UNAUTHORIZED
         return StatusResponse(success=False, msg="Invalid Credentials")
@@ -304,6 +323,9 @@ def audit_scan(req: reqMail, resp: Response) -> StatusResponse:
     if len(todays_history) >= 2:
         resp.status_code = status.HTTP_400_BAD_REQUEST
         pass_data = db.get_data(conn, "passes", req.rno)
+        if not pass_data:
+            resp.status_code = status.HTTP_400_BAD_REQUEST
+            return StatusResponse(success=False, msg="Pass has Expired")
         if pass_data["passType"] == "single-use":
             db.set_data(conn, "expired_passes", req.rno, [pass_data["issueDate"]])
             db.delete_data(conn, "passes", req.rno)
@@ -312,34 +334,58 @@ def audit_scan(req: reqMail, resp: Response) -> StatusResponse:
         conn,
         "scan_history",
         req.rno,
-        [json.dumps([datetime.now(timezone("Asia/Kolkata")).strftime("%d-%m-%Y %H:%M:%S"), req.uid])],
+        [
+            json.dumps(
+                [
+                    datetime.now(timezone("Asia/Kolkata")).strftime(
+                        "%d-%m-%Y %H:%M:%S"
+                    ),
+                    req.uid,
+                ]
+            )
+        ],
     )
     return StatusResponse(success=True, msg="Pass Scan Audited")
 
-@app.get("/login/verifiers")
-def loginPage(req: Request):
-    return templates.TemplateResponse("loginVer.html", {"request": req})
 
-@app.get("/register/mentors")
-def regPageMen(req: Request, resp: Response, key: str = "None"):
-    if hashhex(key) != HKEY:
-        return RedirectResponse("/display_affirm?success=False&msg=Unauthorized Access")
-    # resp.set_cookie("pwd", value=key)
-    return templates.TemplateResponse("RegMen.html", {"request": req})
+@app.get("/login/{userType}")
+def loginPage(req: Request, userType: str):
+    # print(userType)
+    return templates.TemplateResponse(
+        "login.html", {"request": req, "userType": userType.capitalize()[:-1]}
+    )
 
-@app.get("/register/verifiers")
-def regPageVer(req: Request, key: str = "None"):
-    if hashhex(key) != HKEY:
-        return RedirectResponse("/display_affirm?success=False&msg=Unauthorized Access")
-    return templates.TemplateResponse("RegVer.html", {"request": req})
+@app.get("/register/{userType}")
+def register(req: Request, userType: str):
+    return templates.TemplateResponse(
+        "register.html", {"request": req, "userType": userType.capitalize()[:-1]}
+    )
 
-@app.get("/pass_validate")
-def pass_validation(pwd: str):
-    if hashhex(pwd) != HKEY:
+# @app.get("/register/mentors")
+# def regPageMen(req: Request, resp: Response, key: str = "None"):
+#     if hashhex(key) != HKEY:
+#         return RedirectResponse("/display_affirm?success=False&msg=Unauthorized Access")
+#     # resp.set_cookie("pwd", value=key)
+#     return templates.TemplateResponse("RegMen.html", {"request": req})
+
+
+# @app.get("/register/verifiers")
+# def regPageVer(req: Request, key: str = "None"):
+#     if hashhex(key) != HKEY:
+#         return RedirectResponse("/display_affirm?success=False&msg=Unauthorized Access")
+#     return templates.TemplateResponse("RegVer.html", {"request": req})
+
+class reqval(BaseModel):
+    pwd: str
+
+@app.post("/pass_validate")
+def pass_validation(req: reqval, resp: Response):
+    if hashhex(req.pwd) != HKEY:
+        resp.status_code = status.HTTP_401_UNAUTHORIZED
         return {"isValid": False, "message": "Invalid Password"}
     else:
+        resp.status_code = status.HTTP_200_OK
         return {"isValid": True, "message": "Valid Password"}
-
 
 
 @app.get("/scan")
@@ -347,18 +393,20 @@ def scan(req: Request):
     uid = req.cookies.get("uid")
     pwd = req.cookies.get("pwd")
     conn = db.connect()
-    if None not in (uid,pwd):
-        if not is_val_user(conn, "verifiers", User(uid=uid, password=pwd))[1]:
-            return RedirectResponse("/login/verifiers")
-    else:
+    # print(uid, pwd)
+    if not is_val_user(conn, "verifiers", User(uid=str(uid), password=str(pwd)))[1]:
         return RedirectResponse("/login/verifiers")
+    
 
     return templates.TemplateResponse("QRscanner.html", {"request": req})
 
 
 @app.get("/display_affirm")
 def display_affirm(req: Request, success: bool, msg: str):
-    return templates.TemplateResponse("passaffirmation.html", {"request": req, "isValid": success, "message": msg})
+    return templates.TemplateResponse(
+        "passaffirmation.html", {"request": req, "isValid": success, "message": msg}
+    )
+
 
 # @app.get("/")
 # def home(req: Request):
@@ -367,9 +415,36 @@ def display_affirm(req: Request, success: bool, msg: str):
 
 @app.get("/")
 def mainPage(req: Request):
-    return templates.TemplateResponse("index.html", {"request": req})
+    title = "Kmit Pass Generation"
+    heading = "Digital Pass Generation System"
+    paths = [
+        ["/adminpanel", "Admin Panel"],
+        ["/login/verifiers", "Verifier Login"],
+        ["/login/mentors", "Mentor Login"],
+    ]
+    return templates.TemplateResponse(
+        "pathOptions.html",
+        {"request": req, "title": title, "heading": heading, "paths": paths},
+    )
+
+@app.get("/adminpanel")
+def adminPanel(req: Request):
+    if hashhex(str(req.cookies.get("pwd"))) != HKEY:
+        return templates.TemplateResponse("adminLogin.html", {"request": req})
+    title = "Admin Panel"
+    paths = [
+        ["/register/mentors", "Register Mentors"],
+        ["/register/verifiers", "Register Verifiers"],
+    ]
+    return templates.TemplateResponse(
+        "pathOptions.html", {"request": req, "title": title, "heading": title, "paths": paths}
+    )
 
 
+@app.get("/favicon.ico")
+def serve_icon():
+    return FileResponse(os.path.join(app.root_path,"templates","static","QRicon2.png"), media_type="image/png")
+    # return {"root":app.root_path}
 
 @app.head("/wake_up")
 def wake_up():

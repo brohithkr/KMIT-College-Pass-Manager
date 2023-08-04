@@ -3,7 +3,7 @@ pycryptodome
 pillow
 pyqrcode
 pypng
-# opencv-python
+opencv-python
 redis
 requests
 pytz

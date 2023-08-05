@@ -321,14 +321,14 @@ def audit_scan(req: reqMail, resp: Response) -> StatusResponse:
     pass_data = db.get_data(conn, "passes", req.rno)
     if pass_data:
         if pass_data["passType"] == "single-use":
-            if (pass_data["issueDate"]-datetime.today()).days >= 1:
+            if (datetime.strptime(pass_data["issueDate"],"%d-%m-%Y")-datetime.today()).days >= 1:
                 db.set_data(conn, "expired_passes", req.rno, [pass_data["issueDate"]])
                 db.delete_data(conn, "passes", req.rno)
     
     pass_data = db.get_data(conn, "passes", req.rno)
     if not pass_data:
             resp.status_code = status.HTTP_400_BAD_REQUEST
-            return StatusResponse(success=False, msg="Pass has Expired")
+            return StatusResponse(success=False, msg="No Active Pass Found")
     history = db.get_data(conn, "scan_history", req.rno)
     todays_history = filter_todays_history(history)
     print(todays_history)

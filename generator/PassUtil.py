@@ -71,7 +71,7 @@ def genPass(pass_data: dict) -> bytes:
         painter.text((470, y), line, fill=(2,2,2), font=textfont)
         y += height
 
-    img = img.resize((400, 300))
+    img = img.resize((500, 375))
 
     buffer = BytesIO()
     img.save(buffer, format='png')

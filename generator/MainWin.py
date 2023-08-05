@@ -45,7 +45,7 @@ class MainWindow(QtWidgets.QMainWindow):
         else:
             PASSimg = QtGui.QImage.fromData(b64d(img), 'PNG')
             PASSimgbox = QtWidgets.QGraphicsPixmapItem()
-            PASSimgbox.setPixmap(QtGui.QPixmap.fromImage(PASSimg).scaled(400, 300))
+            PASSimgbox.setPixmap(QtGui.QPixmap.fromImage(PASSimg).scaled(500, 375))
             passScene.addItem(PASSimgbox)
         self.Pass.setScene(passScene)
         self.Pass.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
@@ -68,7 +68,7 @@ class MainWindow(QtWidgets.QMainWindow):
             self.Reason.setPlaceholderText("Reason for leave.")
 
     def _connectSignalsSlots(self) -> None:
-        self.rno.returnPressed.connect(lambda: self.rno.setText(self.rno.text().upper()))
+        self.rno.editingFinished.connect(lambda: self.rno.setText(self.rno.text().upper()))
         self.rno.returnPressed.connect(lambda: self.PassType.setFocus())
         self.PassType.currentIndexChanged.connect(self.comboBoxHandler)
         self.Send.setAutoDefault(True)
@@ -134,18 +134,21 @@ class MainWindow(QtWidgets.QMainWindow):
     @pyqtSlot(int)
     def _mailResHandler(self, status: int):
         if status == 401:
-            QtWidgets.QMessageBox.critical(self, "Error!", "Unauthorised Access.")
-        elif status == 406:
-            QtWidgets.QMessageBox.critical(self, "Error!", "Sending E-Mail Failed.")
-            self._clear(False)
+            self.error("Unauthorised Access.")
+        elif status == 409:
+            self.error("Sending E-Mail Failed due to an unexpected error.", False)
+        elif status == 400:
+            self.error("E-Mail not found. Invalid data.", False)
         elif status == 200:
             QtWidgets.QMessageBox.information(self, "Success!", "E-Mail Sent successfully.")
             self._clear()
+        else:
+            self.error("Unexpected server-side error occured.", False)
 
     @pyqtSlot(str)
-    def error(self, err):
+    def error(self, err, clear=None):
         QtWidgets.QMessageBox.critical(self, "Error!", err)
-        self._clear()
+        self._clear(clear)
 
     @pyqtSlot(str)
     def _setStatus(self, status):

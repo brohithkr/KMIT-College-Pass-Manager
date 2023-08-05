@@ -318,18 +318,27 @@ def audit_scan(req: reqMail, resp: Response) -> StatusResponse:
     if not is_val:
         resp.status_code = status.HTTP_401_UNAUTHORIZED
         return StatusResponse(success=False, msg="Invalid Credentials")
-    history = db.get_data(conn, "scan_history", req.rno)
-    todays_history = filter_todays_history(history)
-    if len(todays_history) >= 2:
-        resp.status_code = status.HTTP_400_BAD_REQUEST
-        pass_data = db.get_data(conn, "passes", req.rno)
-        if not pass_data:
+    pass_data = db.get_data(conn, "passes", req.rno)
+    if pass_data:
+        if pass_data["passType"] == "single-use":
+            if (pass_data["issueDate"]-datetime.today()).days >= 1:
+                db.set_data(conn, "expired_passes", req.rno, [pass_data["issueDate"]])
+                db.delete_data(conn, "passes", req.rno)
+    
+    pass_data = db.get_data(conn, "passes", req.rno)
+    if not pass_data:
             resp.status_code = status.HTTP_400_BAD_REQUEST
             return StatusResponse(success=False, msg="Pass has Expired")
+    history = db.get_data(conn, "scan_history", req.rno)
+    todays_history = filter_todays_history(history)
+    print(todays_history)
+    if len(todays_history) >= 2:
+        resp.status_code = status.HTTP_400_BAD_REQUEST
         if pass_data["passType"] == "single-use":
             db.set_data(conn, "expired_passes", req.rno, [pass_data["issueDate"]])
             db.delete_data(conn, "passes", req.rno)
         return StatusResponse(success=False, msg="Already Scanned twice")
+    
     db.set_data(
         conn,
         "scan_history",

@@ -45,6 +45,7 @@ let nextbutton = document.getElementById("next");
 nextbutton.onclick = function () {
     let modalbox = document.querySelector(".modal");
     modalbox.style.display = "none";
+    document.querySelector(".history-list").innerHTML = "";
     displayVideo();
     document.getElementById("errortext").style.display = "none";
 }
@@ -78,6 +79,14 @@ function getcredentials() {
             document.querySelector(".tickmark").innerHTML = crosssvg;
         }
         var hs = document.querySelector(".history-list");
+        var heading = `<tr>
+        <th>Time</th>
+        <th>Scanned By</th>
+    </tr>`
+        if (history_list.length < 1){
+            heading = ""
+        }
+
         for(let i=0; i< history_list.length; i++){
             // let htmlstr = "<li>" + history[i][0] + "-" +  history[i][1] + "</li>";
             // console.log(history)

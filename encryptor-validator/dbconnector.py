@@ -119,14 +119,6 @@ if __name__=="__main__":
     print(d)
     conn.close()
 
-    # r = redis.Redis(
-    #     host="rediss://red-cj197btph6enmk10ro6g:6S2fDrVDrNHMUJH4oHaixPNfO8yQAkLV@singapore-redis.render.com:6379",
-    #     port=6379,
-    #     # password="6S2fDrVDrNHMUJH4oHaixPNfO8yQAkLV"
-    # )
-    # # print(r.set("hello","world"))
-    # print(r.get("hello"))
-
 
 
 
